@@ -87,25 +87,28 @@ class NbParams(param.ParameterizedFunction):
 
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
+        widget_class = wtype(p_obj)
+
         kw = dict(description=p_name, value=getattr(
             self.parameterized, p_name), tooltip=p_obj.doc)
         if hasattr(p_obj, 'get_range'):
             kw['options'] = p_obj.get_range()
         if hasattr(p_obj, 'bounds'):
-            kw['min'],kw['max'] = p_obj.bounds
+            kw['min'], kw['max'] = p_obj.bounds if p_obj.bounds else (None, None)
 
         if isinstance(p_obj, FileSelector):
             files = glob.glob(kw['value'])
             kw['value'] = files[0] if files else ''
             kw['options'] = files
-
-        if p_name=='name':
+        elif issubclass(widget_class, ipywidgets.Text):
+            kw['value'] = str(kw['value'])
+        elif p_name=='name':
             name = kw['value']
             if isinstance(self.parameterized, param.Parameterized):
                 name = name[:-5]
             kw['value'] = '<b>%s</b>' % name
 
-        w = wtype(p_obj)(**kw)
+        w = widget_class(**kw)
         
         def change_event(event):
             setattr(self.parameterized, p_name, event['new'])
@@ -127,7 +130,7 @@ class NbParams(param.ParameterizedFunction):
         self.blocked = False
         if self.p.halt:
             self.p.halt = False
-        else:
+        elif self.p.execute:
             execution_hooks[self.p.execute]()
         if self.p.callback:
             self.p.callback(self.parameterized)
@@ -151,7 +154,7 @@ class NbParams(param.ParameterizedFunction):
         if self.p.onchange:
             pass
         elif self.blocked:
-            button = 'Run'
+            button = 'Run %s' % self.p.execute
         elif self.p.callback:
             button = 'Execute'
         if button:
