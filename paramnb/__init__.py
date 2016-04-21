@@ -113,9 +113,9 @@ class NbParams(param.ParameterizedFunction):
         if isinstance(p_obj, MultiFileSelector):
             kw['options'] = p_obj.files_available
             kw['width'] = '100%'
-            initial = p_obj.files_available[0]
-            kw['value'] = (initial,)
-            self.parameterized.set_default(p_name, [initial])
+            initial = p_obj.files_available[:1]
+            kw['value'] = tuple(initial)
+            self.parameterized.set_default(p_name, initial)
 
         if isinstance(p_obj, FileSelector):
             files = glob.glob(kw['value'])
