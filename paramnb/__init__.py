@@ -19,7 +19,16 @@ class FileSelector(param.String):
     Defines a glob to select a list of files.
     """
 
+class MultiFileSelector(param.List):
+    """
+    Defines a glob to select a list of files and return a subset as a list
+    """
+    __slots__ = ['files_available']
+    def __init__(self, path='', **kwargs):
+        self.files_available = sorted(glob.glob(path))
+        super(MultiFileSelector, self).__init__(**kwargs)
 
+# Dictionary mapping param types to ipython widget types
 ptype2wtype = {
     param.Parameter: ipywidgets.Text,
     param.Selector: ipywidgets.Dropdown,
@@ -27,7 +36,11 @@ ptype2wtype = {
     param.Number: ipywidgets.FloatSlider,
     param.Integer: ipywidgets.IntSlider,
     FileSelector: ipywidgets.Dropdown,
+    MultiFileSelector: ipywidgets.SelectMultiple,
 }
+
+# If the param type needs to pre-process the input, provide the runnable here
+preprocessors = {MultiFileSelector: lambda val: list(val)}
 
 
 def wtype(pobj):
@@ -88,6 +101,7 @@ class NbParams(param.ParameterizedFunction):
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
         widget_class = wtype(p_obj)
+        ptype = type(p_obj)
 
         kw = dict(description=p_name, value=getattr(
             self.parameterized, p_name), tooltip=p_obj.doc)
@@ -95,6 +109,13 @@ class NbParams(param.ParameterizedFunction):
             kw['options'] = p_obj.get_range()
         if hasattr(p_obj, 'bounds'):
             kw['min'], kw['max'] = p_obj.bounds if p_obj.bounds else (None, None)
+
+        if isinstance(p_obj, MultiFileSelector):
+            kw['options'] = p_obj.files_available
+            kw['width'] = '100%'
+            initial = p_obj.files_available[0]
+            kw['value'] = (initial,)
+            self.parameterized.set_default(p_name, [initial])
 
         if isinstance(p_obj, FileSelector):
             files = glob.glob(kw['value'])
@@ -111,7 +132,10 @@ class NbParams(param.ParameterizedFunction):
         w = widget_class(**kw)
         
         def change_event(event):
-            setattr(self.parameterized, p_name, event['new'])
+            new_values = event['new']
+            if ptype in preprocessors:
+                new_values = preprocessors[ptype](new_values)
+            setattr(self.parameterized, p_name, new_values)
             if self.p.onchange:
                 self.execute_widget(None)
         w.observe(change_event, 'value')
