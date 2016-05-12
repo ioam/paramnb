@@ -1,52 +1,88 @@
+"""
+Jupyter notebook interface for Param (https://github.com/ioam/param).
+
+Given a Parameterized object, displays a box with an ipywidget for each
+Parameter, allowing users to view and and manipulate Parameter values
+from within a Jupyter/IPython notebook.  
+"""
+
 import time
 import glob
-import os
-import pickle
-import re
+
 from collections import OrderedDict
 
+from IPython import get_ipython
 from IPython.display import display, Javascript
+
 import ipywidgets
 from ipywidgets.widgets import VBox
 
 import param
 from param.parameterized import classlist
 
-IPYTHON = get_ipython()
 
-class FileSelector(param.String):
+class FileSelector(param.ObjectSelector):
     """
-    Defines a glob to select a list of files.
+    Given a path glob, allows one file to be selected from those matching.
+    """
+    __slots__ = ['path']
+
+    def __init__(self, default=None, path="", **kwargs):
+        super(FileSelector, self).__init__(default, **kwargs)
+        self.path = path
+        self.objects = sorted(glob.glob(self.path))
+        if self.default is None and self.objects:
+            self.default = self.objects[0]
+
+
+
+class ListSelector(param.ObjectSelector):
+    """
+    Variant of ObjectSelector where the value can be multiple objects from
+    a list of possible objects.
     """
 
-class MultiFileSelector(param.List):
-    """
-    Defines a glob to select a list of files and return a subset as a list
-    """
-    __slots__ = ['files_available']
-    def __init__(self, path='', **kwargs):
-        self.files_available = sorted(glob.glob(path))
-        super(MultiFileSelector, self).__init__(**kwargs)
+    def compute_default(self):
+        if self.default is None and callable(self.compute_default_fn):
+            self.default = self.compute_default_fn()
+            for o in self.default:
+                if self.default not in self.objects:
+                    self.objects.append(self.default)
 
-# Dictionary mapping param types to ipython widget types
+    def _check_value(self, val, obj=None):
+        for o in val:
+            super(ListSelector, self)._check_value(o, obj)
+
+
+class MultiFileSelector(ListSelector):
+    """
+    Given a path glob, allows multiple files to be selected from the list of matches.
+    """
+    __slots__ = ['path']
+
+    def __init__(self, default=None, path="", **kwargs):
+        super(MultiFileSelector, self).__init__(default, **kwargs)
+        self.path = path
+        self.objects = sorted(glob.glob(self.path))
+        if self.default is None and self.objects:
+            self.default = self.objects
+
+
+# Maps from Parameter type to ipython widget types with any options desired
 ptype2wtype = {
-    param.Parameter: ipywidgets.Text,
-    param.Selector: ipywidgets.Dropdown,
-    param.Boolean: ipywidgets.Checkbox,
-    param.Number: ipywidgets.FloatSlider,
-    param.Integer: ipywidgets.IntSlider,
-    FileSelector: ipywidgets.Dropdown,
-    MultiFileSelector: ipywidgets.SelectMultiple,
+    param.Parameter: (ipywidgets.Text,            {}),
+    param.Selector:  (ipywidgets.Dropdown,        {}),
+    param.Boolean:   (ipywidgets.Checkbox,        {}),
+    param.Number:    (ipywidgets.FloatSlider,     {}),
+    param.Integer:   (ipywidgets.IntSlider,       {}),
+    ListSelector:    (ipywidgets.SelectMultiple,  dict(width='100%')),
 }
-
-# If the param type needs to pre-process the input, provide the runnable here
-preprocessors = {MultiFileSelector: lambda val: list(val)}
 
 
 def wtype(pobj):
+    # Achieves making constant parameters not editable, but doesn't show their names
     if pobj.constant:
-        # constant params shouldn't be editable
-        return ipywidgets.HTML
+        return (ipywidgets.HTML, {})
     for t in classlist(type(pobj))[::-1]:
         if t in ptype2wtype:
             return ptype2wtype[t]
@@ -72,7 +108,8 @@ def run_next_cell():
 execution_hooks = {'below': run_cells_below,
                    'next': run_next_cell}
 
-class NbParams(param.ParameterizedFunction):
+
+class Widgets(param.ParameterizedFunction):
 
     callback = param.Callable(default=None, allow_None=True, doc="""
         Custom callable to execute on button press or onchange.""")
@@ -100,41 +137,29 @@ class NbParams(param.ParameterizedFunction):
 
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
-        widget_class = wtype(p_obj)
-        ptype = type(p_obj)
+        widget_class, widget_options = wtype(p_obj)
 
         kw = dict(description=p_name, value=getattr(
             self.parameterized, p_name), tooltip=p_obj.doc)
+        kw.update(widget_options)
+
         if hasattr(p_obj, 'get_range'):
             kw['options'] = p_obj.get_range()
         if hasattr(p_obj, 'bounds'):
             kw['min'], kw['max'] = p_obj.bounds if p_obj.bounds else (None, None)
 
-        if isinstance(p_obj, MultiFileSelector):
-            kw['options'] = p_obj.files_available
-            kw['width'] = '100%'
-            initial = p_obj.files_available[:1]
-            kw['value'] = tuple(initial)
-            self.parameterized.set_default(p_name, initial)
-
-        if isinstance(p_obj, FileSelector):
-            files = glob.glob(kw['value'])
-            kw['value'] = files[0] if files else ''
-            kw['options'] = files
         elif issubclass(widget_class, ipywidgets.Text):
             kw['value'] = str(kw['value'])
-        elif p_name=='name':
+        elif p_name == 'name':
             name = kw['value']
             if isinstance(self.parameterized, param.Parameterized):
                 name = name[:-5]
             kw['value'] = '<b>%s</b>' % name
 
         w = widget_class(**kw)
-        
+
         def change_event(event):
             new_values = event['new']
-            if ptype in preprocessors:
-                new_values = preprocessors[ptype](new_values)
             setattr(self.parameterized, p_name, new_values)
             if self.p.onchange:
                 self.execute_widget(None)
@@ -163,7 +188,7 @@ class NbParams(param.ParameterizedFunction):
     def event_loop(self):
         while self.blocked:
             time.sleep(0.01)
-            IPYTHON.kernel.do_one_iteration()
+            get_ipython().kernel.do_one_iteration()
 
 
     def widgets(self):
@@ -171,7 +196,7 @@ class NbParams(param.ParameterizedFunction):
         # order by param precedence, but with name first and persist last
         params = self.parameterized.params().items()
         ordered_params = OrderedDict(sorted(params, key=lambda x: x[1].precedence)).keys()
-        ordered_params.insert(0,ordered_params.pop(ordered_params.index('name')))
+        ordered_params.insert(0, ordered_params.pop(ordered_params.index('name')))
 
         widgets = [self.widget(pname) for pname in ordered_params]
         button = None
