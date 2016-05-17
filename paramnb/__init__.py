@@ -144,17 +144,24 @@ class Widgets(param.ParameterizedFunction):
         kw.update(widget_options)
 
         if hasattr(p_obj, 'get_range'):
-            kw['options'] = p_obj.get_range()
-        if hasattr(p_obj, 'bounds'):
-            kw['min'], kw['max'] = p_obj.bounds if p_obj.bounds else (None, None)
+            # List of available objects with concise names
+            kw['options'] = {(key.__name__ if hasattr(key, '__name__') else str(key)):obj
+                             for key,obj in p_obj.get_range().iteritems()}
 
-        elif issubclass(widget_class, ipywidgets.Text):
+        if hasattr(p_obj, 'get_soft_bounds'):
+            kw['min'], kw['max'] = p_obj.get_soft_bounds()
+           
+        if issubclass(widget_class, ipywidgets.Text):
             kw['value'] = str(kw['value'])
         elif p_name == 'name':
             name = kw['value']
             if isinstance(self.parameterized, param.Parameterized):
                 name = name[:-5]
             kw['value'] = '<b>%s</b>' % name
+
+        if issubclass(type(p_obj), param.Number) and (kw['min'] is None or kw['max'] is None):
+            # Supress slider if the range is not bounded
+            widget_class = ipywidgets.FloatText
 
         w = widget_class(**kw)
 
@@ -193,7 +200,7 @@ class Widgets(param.ParameterizedFunction):
 
     def widgets(self):
         """Display widgets for all parameters (i.e. property sheet)"""
-        # order by param precedence, but with name first and persist last
+        # order by param precedence, but with name first
         params = self.parameterized.params().items()
         ordered_params = OrderedDict(sorted(params, key=lambda x: x[1].precedence)).keys()
         ordered_params.insert(0, ordered_params.pop(ordered_params.index('name')))
