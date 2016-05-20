@@ -15,7 +15,6 @@ from IPython import get_ipython
 from IPython.display import display, Javascript
 
 import ipywidgets
-from ipywidgets.widgets import VBox
 
 import param
 from param.parameterized import classlist
@@ -75,7 +74,7 @@ ptype2wtype = {
     param.Boolean:   (ipywidgets.Checkbox,        {}),
     param.Number:    (ipywidgets.FloatSlider,     {}),
     param.Integer:   (ipywidgets.IntSlider,       {}),
-    ListSelector:    (ipywidgets.SelectMultiple,  dict(width='100%')),
+    ListSelector:    (ipywidgets.SelectMultiple,  {}),
 }
 
 
@@ -130,7 +129,8 @@ class Widgets(param.ParameterizedFunction):
         self.parameterized = parameterized
         self.blocked = self.execute is not None
         widgets = self.widgets()
-        vbox = VBox(children=widgets)
+        vbox = ipywidgets.Box(children=widgets, layout=layout)
+
         display(vbox)
         if self.execute:
             self.event_loop()
