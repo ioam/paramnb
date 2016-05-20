@@ -129,8 +129,9 @@ class Widgets(param.ParameterizedFunction):
         self.parameterized = parameterized
         self.blocked = self.execute is not None
         widgets = self.widgets()
-        vbox = ipywidgets.Box(children=widgets, layout=layout)
-
+        layout = ipywidgets.Layout(display='flex', flex_flow='row')
+        vbox = ipywidgets.VBox(children=widgets, layout=layout)
+        
         display(vbox)
         if self.execute:
             self.event_loop()
@@ -139,8 +140,7 @@ class Widgets(param.ParameterizedFunction):
         p_obj = self.parameterized.params(p_name)
         widget_class, widget_options = wtype(p_obj)
 
-        kw = dict(description=p_name, value=getattr(
-            self.parameterized, p_name), tooltip=p_obj.doc)
+        kw = dict(value=getattr(self.parameterized, p_name), tooltip=p_obj.doc)
         kw.update(widget_options)
 
         if hasattr(p_obj, 'get_range'):
@@ -198,14 +198,21 @@ class Widgets(param.ParameterizedFunction):
             get_ipython().kernel.do_one_iteration()
 
 
+    label_format = """<div style="padding: 5px; width: 160px; 
+        text-align: right;">%s</div>"""
+            
+
     def widgets(self):
-        """Display widgets for all parameters (i.e. property sheet)"""
+        """Return name,widget boxes for all parameters (i.e., a property sheet)"""
         # order by param precedence, but with name first
         params = self.parameterized.params().items()
         ordered_params = OrderedDict(sorted(params, key=lambda x: x[1].precedence)).keys()
         ordered_params.insert(0, ordered_params.pop(ordered_params.index('name')))
-
-        widgets = [self.widget(pname) for pname in ordered_params]
+        layout = ipywidgets.Layout()
+        
+        widgets = [ipywidgets.HBox(children=[ipywidgets.HTML(self.label_format % pname),
+                                             self.widget(pname)],layout=layout)
+                   for pname in ordered_params]
         button = None
         if self.p.onchange:
             pass
