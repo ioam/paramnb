@@ -73,11 +73,17 @@ def NumericWidget(*args, **kw):
         return ipywidgets.FloatText(*args,**kw)
     else:
         return ipywidgets.HBox(children=[ipywidgets.FloatSlider(*args,**kw)])
+#                                         ipywidgets.BoundedFloatText(*args,**kw)])
 
-            
+
+def TextWidget(*args, **kw):
+    kw['value'] = str(kw['value'])
+    return ipywidgets.Text(*args,**kw)
+
+
 # Maps from Parameter type to ipython widget types with any options desired
 ptype2wtype = {
-    param.Parameter: (ipywidgets.Text,            {}),
+    param.Parameter: (TextWidget,                 {}),
     param.Selector:  (ipywidgets.Dropdown,        {}),
     param.Boolean:   (ipywidgets.Checkbox,        {}),
     param.Number:    (NumericWidget,              {}),
@@ -175,9 +181,6 @@ class Widgets(param.ParameterizedFunction):
         if hasattr(p_obj, 'get_soft_bounds'):
             kw['min'], kw['max'] = p_obj.get_soft_bounds()
            
-        if isinstance(widget_class,type) and issubclass(widget_class, ipywidgets.Text):
-            kw['value'] = str(kw['value'])
-
         w = widget_class(**kw)
 
         def change_event(event):
