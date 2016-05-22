@@ -123,6 +123,12 @@ class Widgets(param.ParameterizedFunction):
     halt = param.Boolean(default=False, doc="""
         Halt execution until event is generated.""")
 
+    label_width = param.String(default=None, allow_None=True, doc="""
+        Width of the description for parameters in the list, using any
+        string specification accepted by CSS (e.g. "100px" or "50%"). 
+        By default, tries to calculate a reasonable value using a
+        heuristic.""")
+
     def __call__(self, parameterized, **params):
         self.p = param.ParamOverrides(self, params)
         self._widgets = {}
@@ -131,7 +137,7 @@ class Widgets(param.ParameterizedFunction):
         widgets = self.widgets()
         layout = ipywidgets.Layout(display='flex', flex_flow='row')
         vbox = ipywidgets.VBox(children=widgets, layout=layout)
-        
+
         display(vbox)
         if self.execute:
             self.event_loop()
@@ -198,8 +204,8 @@ class Widgets(param.ParameterizedFunction):
             get_ipython().kernel.do_one_iteration()
 
 
-    label_format = """<div style="padding: 5px; width: 160px; 
-        text-align: right;">%s</div>"""
+    label_format = """<div style="padding: 5px; width: {0}; 
+        text-align: right;">{1}</div>"""
             
 
     def widgets(self):
@@ -209,8 +215,14 @@ class Widgets(param.ParameterizedFunction):
         ordered_params = OrderedDict(sorted(params, key=lambda x: x[1].precedence)).keys()
         ordered_params.insert(0, ordered_params.pop(ordered_params.index('name')))
         layout = ipywidgets.Layout()
+
+        # Use a heuristic to make enough room for the labels, but depends on the font
+        label_width=self.p.label_width
+        if label_width is None:
+            max_description = max([len(p) for p in self.parameterized.params().keys()])
+            label_width = "{0}px".format(max(8,int(max_description*7.5)))
         
-        widgets = [ipywidgets.HBox(children=[ipywidgets.HTML(self.label_format % pname),
+        widgets = [ipywidgets.HBox(children=[ipywidgets.HTML(self.label_format.format(label_width,pname)),
                                              self.widget(pname)],layout=layout)
                    for pname in ordered_params]
         button = None
@@ -224,4 +236,5 @@ class Widgets(param.ParameterizedFunction):
             display_button = ipywidgets.Button(description=button)
             display_button.on_click(self.execute_widget)
             widgets.append(display_button)
+
         return widgets
