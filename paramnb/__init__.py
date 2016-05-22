@@ -68,11 +68,11 @@ class MultiFileSelector(ListSelector):
 
 
 def NumericWidget(*args, **kw):
-    widget_class = ipywidgets.FloatSlider
+    """Returns appropriate slider or text boxes depending on bounds"""
     if (kw['min'] is None or kw['max'] is None):
-        # Supress slider if the range is not bounded
-        widget_class = ipywidgets.FloatText
-    return widget_class(*args,**kw)
+        return ipywidgets.FloatText(*args,**kw)
+    else:
+        return ipywidgets.HBox(children=[ipywidgets.FloatSlider(*args,**kw)])
 
             
 # Maps from Parameter type to ipython widget types with any options desired
