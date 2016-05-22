@@ -20,6 +20,7 @@ import param
 from param.parameterized import classlist
 
 
+# belongs in Param
 class FileSelector(param.ObjectSelector):
     """
     Given a path glob, allows one file to be selected from those matching.
@@ -29,12 +30,16 @@ class FileSelector(param.ObjectSelector):
     def __init__(self, default=None, path="", **kwargs):
         super(FileSelector, self).__init__(default, **kwargs)
         self.path = path
+        self.update()
+        
+    def update(self):
         self.objects = sorted(glob.glob(self.path))
-        if self.default is None and self.objects:
-            self.default = self.objects[0]
+        if self.default in self.objects:
+            return
+        self.default = self.objects[0] if self.objects else None
 
 
-
+# belongs in Param
 class ListSelector(param.ObjectSelector):
     """
     Variant of ObjectSelector where the value can be multiple objects from
@@ -53,6 +58,7 @@ class ListSelector(param.ObjectSelector):
             super(ListSelector, self)._check_value(o, obj)
 
 
+# belongs in Param
 class MultiFileSelector(ListSelector):
     """
     Given a path glob, allows multiple files to be selected from the list of matches.
@@ -62,9 +68,14 @@ class MultiFileSelector(ListSelector):
     def __init__(self, default=None, path="", **kwargs):
         super(MultiFileSelector, self).__init__(default, **kwargs)
         self.path = path
+        self.update()
+        
+    def update(self):        
         self.objects = sorted(glob.glob(self.path))
-        if self.default is None and self.objects:
-            self.default = self.objects
+        if self.default and all([o in self.objects for o in self.default]):
+            return
+        self.default = self.objects
+
 
 
 def NumericWidget(*args, **kw):
@@ -128,9 +139,13 @@ def estimate_label_width(labels):
     return "{0}px".format(max(8,int(max_length*7.5)))
 
 
-def shortname(x):
-    """Return a concise name for the given object"""
-    return x.__name__ if hasattr(x, '__name__') else str(x)
+def named_objs(objlist):
+    """
+    Given a list of objects, returns a dictionary mapping from 
+    string name for the object to the object itself.
+    """
+    return {k.__name__ if hasattr(k, '__name__') else str(k) : obj
+            for k,obj in objlist}
 
 
 class Widgets(param.ParameterizedFunction):
@@ -178,8 +193,7 @@ class Widgets(param.ParameterizedFunction):
         kw.update(widget_options)
 
         if hasattr(p_obj, 'get_range'):
-            kw['options'] = {shortname(key):obj
-                             for key,obj in p_obj.get_range().iteritems()}
+            kw['options'] = named_objs(p_obj.get_range().iteritems())
 
         if hasattr(p_obj, 'get_soft_bounds'):
             kw['min'], kw['max'] = p_obj.get_soft_bounds()
@@ -192,6 +206,30 @@ class Widgets(param.ParameterizedFunction):
             if not self.p.button:
                 self.execute_widget(None)
         w.observe(change_event, 'value')
+
+        # Hack ; should be part of Widget classes
+        if hasattr(p_obj,"path"):
+            def path_change_event(event):
+                new_values = event['new']
+                p_obj = self.parameterized.params(p_name)
+                p_obj.path = new_values
+                p_obj.update()
+                
+                # Update default value in widget, ensuring it's always a legal option
+                selector = self._widgets[p_name].children[1]
+                defaults = p_obj.default
+                if not issubclass(type(defaults),list):
+                    defaults = [defaults]
+                selector.options.update(named_objs(zip(defaults,defaults)))
+                selector.value=p_obj.default
+                selector.options=named_objs(p_obj.get_range().iteritems())
+                
+                if p_obj.objects:
+                    self.execute_widget(None)
+
+            path_w = ipywidgets.Text(value=p_obj.path)
+            path_w.observe(path_change_event, 'value')
+            w = ipywidgets.VBox(children=[path_w,w])
 
         return w
 
