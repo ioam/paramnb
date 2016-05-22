@@ -225,19 +225,19 @@ class Widgets(param.ParameterizedFunction):
         
         params = self.parameterized.params().items()
         ordered_params = OrderedDict(sorted(params, key=lambda x: x[1].precedence)).keys()
+
+        # Format name specially
+        widgets = [ipywidgets.HTML("<b>"+self.parameterized.name+"</b>")]
         ordered_params.pop(ordered_params.index('name'))
-        layout = ipywidgets.Layout()
 
         label_width=self.p.label_width
         if callable(label_width):
             label_width = label_width(self.parameterized.params().keys())
-        
-        widgets = [ipywidgets.HBox(children=[ipywidgets.HTML(self.label_format.format(label_width,pname)),
-                                             self.widget(pname)],layout=layout)
+
+        widgets += [ipywidgets.HBox(children=[ipywidgets.HTML(self.label_format.format(label_width,pname)),
+                                              self.widget(pname)])
                    for pname in ordered_params]
 
-        widgets = [ipywidgets.HTML("<b>"+self.parameterized.name+"</b>")] + widgets
-        
         if self.p.button and not (self.p.callback is None and self.p.next_n==0):
             label = 'Run %s' % self.p.next_n if self.p.next_n>0 else "Run"
             display_button = ipywidgets.Button(description=label)
