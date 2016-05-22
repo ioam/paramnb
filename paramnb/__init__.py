@@ -100,25 +100,21 @@ def wtype(pobj):
             return ptype2wtype[t]
 
 
-def run_cells_below():
-    js_code = """
-       var nb = IPython.notebook;
-       nb.execute_cell_range(nb.get_selected_index()+1, nb.ncells());
-    """
-    display(Javascript(js_code))
-
-
-def run_next_cell():
+def run_next_cells(n):
+    if n=='all':
+        upper = 'nb.ncells()'
+    elif n<1:
+        return
+    else:
+        upper = 'index+{0}'.format(n+1)
+    
     js_code = """
        var nb = IPython.notebook;
        var index = nb.get_selected_index();
-       nb.execute_cell_range(index+1, index+2);
-    """
+       nb.execute_cell_range(index+1, {0});
+    """.format(upper)
+
     display(Javascript(js_code))
-
-
-execution_hooks = {'below': run_cells_below,
-                   'next': run_next_cell}
 
 
 def estimate_label_width(labels):
@@ -132,20 +128,26 @@ def estimate_label_width(labels):
     return "{0}px".format(max(8,int(max_length*7.5)))
 
 
+def shortname(x):
+    """Return a concise name for the given object"""
+    return x.__name__ if hasattr(x, '__name__') else str(x)
+
+
 class Widgets(param.ParameterizedFunction):
 
-    callback = param.Callable(default=None, allow_None=True, doc="""
-        Custom callable to execute on button press or onchange.""")
+    callback = param.Callable(default=None, doc="""
+        Custom callable to execute on button press 
+        (if `button`) else whenever a widget is changed,
+        Should accept a Parameterized object argument.""")
 
-    execute = param.ObjectSelector(default='below', allow_None=True,
-                                   objects=['below', 'next'], doc="""
-        Whether to execute cells 'below', the 'next' cell or None.""")
+    next_n = param.Parameter(default=0, doc="""
+        When executing cells, integer number to execute (or 'all').
+        A value of zero means not to control cell execution.""")
 
-    onchange = param.Boolean(default=False, doc="""
-        Whether to execute callback events onchange or on button press.""")
-
-    halt = param.Boolean(default=False, doc="""
-        Halt execution until event is generated.""")
+    button = param.Boolean(default=False, doc="""
+        Whether to show a button to control cell execution
+        If false, will execute `next` cells on any widget 
+        value change.""")
 
     label_width = param.Parameter(default=estimate_label_width, doc="""
         Width of the description for parameters in the list, using any
@@ -153,18 +155,20 @@ class Widgets(param.ParameterizedFunction):
         If set to a callable, will call that function using the list of 
         all labels to get the value.""")
 
+
     def __call__(self, parameterized, **params):
         self.p = param.ParamOverrides(self, params)
         self._widgets = {}
         self.parameterized = parameterized
-        self.blocked = self.execute is not None
+        self.blocked = self.p.next_n>0 or self.p.callback and not self.p.button
+        
         widgets = self.widgets()
         layout = ipywidgets.Layout(display='flex', flex_flow='row')
         vbox = ipywidgets.VBox(children=widgets, layout=layout)
 
         display(vbox)
-        if self.execute:
-            self.event_loop()
+        
+        self.event_loop()
 
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
@@ -174,8 +178,7 @@ class Widgets(param.ParameterizedFunction):
         kw.update(widget_options)
 
         if hasattr(p_obj, 'get_range'):
-            # List of available objects with concise names
-            kw['options'] = {(key.__name__ if hasattr(key, '__name__') else str(key)):obj
+            kw['options'] = {shortname(key):obj
                              for key,obj in p_obj.get_range().iteritems()}
 
         if hasattr(p_obj, 'get_soft_bounds'):
@@ -186,7 +189,7 @@ class Widgets(param.ParameterizedFunction):
         def change_event(event):
             new_values = event['new']
             setattr(self.parameterized, p_name, new_values)
-            if self.p.onchange:
+            if not self.p.button:
                 self.execute_widget(None)
         w.observe(change_event, 'value')
 
@@ -202,11 +205,8 @@ class Widgets(param.ParameterizedFunction):
 
     def execute_widget(self, event):
         self.blocked = False
-        if self.p.halt:
-            self.p.halt = False
-        elif self.p.execute:
-            execution_hooks[self.p.execute]()
-        if self.p.callback:
+        run_next_cells(self.p.next_n)
+        if self.p.callback is not None:
             self.p.callback(self.parameterized)
 
 
@@ -238,15 +238,9 @@ class Widgets(param.ParameterizedFunction):
 
         widgets = [ipywidgets.HTML("<b>"+self.parameterized.name+"</b>")] + widgets
         
-        button = None
-        if self.p.onchange:
-            pass
-        elif self.blocked:
-            button = 'Run %s' % self.p.execute
-        elif self.p.callback:
-            button = 'Execute'
-        if button:
-            display_button = ipywidgets.Button(description=button)
+        if self.p.button and not (self.p.callback is None and self.p.next_n==0):
+            label = 'Run %s' % self.p.next_n if self.p.next_n>0 else "Run"
+            display_button = ipywidgets.Button(description=label)
             display_button.on_click(self.execute_widget)
             widgets.append(display_button)
 
