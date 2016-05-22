@@ -67,20 +67,27 @@ class MultiFileSelector(ListSelector):
             self.default = self.objects
 
 
+def NumericWidget(*args, **kw):
+    widget_class = ipywidgets.FloatSlider
+    if (kw['min'] is None or kw['max'] is None):
+        # Supress slider if the range is not bounded
+        widget_class = ipywidgets.FloatText
+    return widget_class(*args,**kw)
+
+            
 # Maps from Parameter type to ipython widget types with any options desired
 ptype2wtype = {
     param.Parameter: (ipywidgets.Text,            {}),
     param.Selector:  (ipywidgets.Dropdown,        {}),
     param.Boolean:   (ipywidgets.Checkbox,        {}),
-    param.Number:    (ipywidgets.FloatSlider,     {}),
+    param.Number:    (NumericWidget,              {}),
     param.Integer:   (ipywidgets.IntSlider,       {}),
     ListSelector:    (ipywidgets.SelectMultiple,  {}),
 }
 
 
 def wtype(pobj):
-    # Achieves making constant parameters not editable, but doesn't show their names
-    if pobj.constant:
+    if pobj.constant: # Ensure constant parameters cannot be edited
         return (ipywidgets.HTML, {})
     for t in classlist(type(pobj))[::-1]:
         if t in ptype2wtype:
@@ -108,6 +115,17 @@ execution_hooks = {'below': run_cells_below,
                    'next': run_next_cell}
 
 
+def estimate_label_width(labels):
+    """
+    Given a list of labels, estimate the width in pixels 
+    and return in a format accepted by CSS.
+    Necessarily an approximation, since the font is unknown
+    and is usually proportionally spaced.
+    """
+    max_length = max([len(l) for l in labels])
+    return "{0}px".format(max(8,int(max_length*7.5)))
+
+
 class Widgets(param.ParameterizedFunction):
 
     callback = param.Callable(default=None, allow_None=True, doc="""
@@ -123,11 +141,11 @@ class Widgets(param.ParameterizedFunction):
     halt = param.Boolean(default=False, doc="""
         Halt execution until event is generated.""")
 
-    label_width = param.String(default=None, allow_None=True, doc="""
+    label_width = param.Parameter(default=estimate_label_width, doc="""
         Width of the description for parameters in the list, using any
         string specification accepted by CSS (e.g. "100px" or "50%"). 
-        By default, tries to calculate a reasonable value using a
-        heuristic.""")
+        If set to a callable, will call that function using the list of 
+        all labels to get the value.""")
 
     def __call__(self, parameterized, **params):
         self.p = param.ParamOverrides(self, params)
@@ -157,17 +175,8 @@ class Widgets(param.ParameterizedFunction):
         if hasattr(p_obj, 'get_soft_bounds'):
             kw['min'], kw['max'] = p_obj.get_soft_bounds()
            
-        if issubclass(widget_class, ipywidgets.Text):
+        if isinstance(widget_class,type) and issubclass(widget_class, ipywidgets.Text):
             kw['value'] = str(kw['value'])
-        elif p_name == 'name':
-            name = kw['value']
-            if isinstance(self.parameterized, param.Parameterized):
-                name = name[:-5]
-            kw['value'] = '<b>%s</b>' % name
-
-        if issubclass(type(p_obj), param.Number) and (kw['min'] is None or kw['max'] is None):
-            # Supress slider if the range is not bounded
-            widget_class = ipywidgets.FloatText
 
         w = widget_class(**kw)
 
@@ -210,21 +219,22 @@ class Widgets(param.ParameterizedFunction):
 
     def widgets(self):
         """Return name,widget boxes for all parameters (i.e., a property sheet)"""
-        # order by param precedence, but with name first
+        
         params = self.parameterized.params().items()
         ordered_params = OrderedDict(sorted(params, key=lambda x: x[1].precedence)).keys()
-        ordered_params.insert(0, ordered_params.pop(ordered_params.index('name')))
+        ordered_params.pop(ordered_params.index('name'))
         layout = ipywidgets.Layout()
 
-        # Use a heuristic to make enough room for the labels, but depends on the font
         label_width=self.p.label_width
-        if label_width is None:
-            max_description = max([len(p) for p in self.parameterized.params().keys()])
-            label_width = "{0}px".format(max(8,int(max_description*7.5)))
+        if callable(label_width):
+            label_width = label_width(self.parameterized.params().keys())
         
         widgets = [ipywidgets.HBox(children=[ipywidgets.HTML(self.label_format.format(label_width,pname)),
                                              self.widget(pname)],layout=layout)
                    for pname in ordered_params]
+
+        widgets = [ipywidgets.HTML("<b>"+self.parameterized.name+"</b>")] + widgets
+        
         button = None
         if self.p.onchange:
             pass
