@@ -113,17 +113,23 @@ def wtype(pobj):
 
 def run_next_cells(n):
     if n=='all':
-        upper = 'nb.ncells()'
+        n = 'NaN'
     elif n<1:
         return
-    else:
-        upper = 'index+{0}'.format(n+1)
-    
+
     js_code = """
-       var nb = IPython.notebook;
-       var index = nb.get_selected_index();
-       nb.execute_cell_range(index+1, {0});
-    """.format(upper)
+       var num = {0};
+       var run = false;
+       var current = $(this)[0];
+       $.each(IPython.notebook.get_cells(), function (idx, cell) {{
+          if ((cell.output_area === current) && !run) {{
+             run = true;
+          }} else if ((cell.cell_type == 'code') && !(num < 1) && run) {{
+             cell.execute();
+             num = num - 1;
+          }}
+       }});
+    """.format(n)
 
     display(Javascript(js_code))
 
