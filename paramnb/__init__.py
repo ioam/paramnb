@@ -230,7 +230,7 @@ class Widgets(param.ParameterizedFunction):
                 selector.value=p_obj.default
                 selector.options=named_objs(p_obj.get_range().iteritems())
                 
-                if p_obj.objects:
+                if p_obj.objects and not self.p.button:
                     self.execute_widget(None)
 
             path_w = ipywidgets.Text(value=p_obj.path)
