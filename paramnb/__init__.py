@@ -9,6 +9,8 @@ from within a Jupyter/IPython notebook.
 import time
 import glob
 
+from os.path import commonprefix, dirname, sep
+
 from collections import OrderedDict
 
 from IPython import get_ipython
@@ -18,6 +20,15 @@ import ipywidgets
 
 import param
 from param.parameterized import classlist
+
+
+def abbreviate_paths(pathspec,named_paths):
+    """
+    Given a dict of (pathname,path) pairs, removes any prefix shared by all pathnames.
+    Helps keep menu items short yet unambiguous.
+    """
+    prefix = commonprefix([dirname(name)+sep for name in named_paths.keys()]+[pathspec])
+    return {name[len(prefix):]:path for name,path in named_paths.iteritems()}
 
 
 # belongs in Param
@@ -37,6 +48,9 @@ class FileSelector(param.ObjectSelector):
         if self.default in self.objects:
             return
         self.default = self.objects[0] if self.objects else None
+
+    def get_range(self):
+        return abbreviate_paths(self.path,super(FileSelector, self).get_range())
 
 
 # belongs in Param
@@ -76,6 +90,8 @@ class MultiFileSelector(ListSelector):
             return
         self.default = self.objects
 
+    def get_range(self):
+        return abbreviate_paths(self.path,super(MultiFileSelector, self).get_range())
 
 
 def NumericWidget(*args, **kw):
@@ -84,7 +100,6 @@ def NumericWidget(*args, **kw):
         return ipywidgets.FloatText(*args,**kw)
     else:
         return ipywidgets.HBox(children=[ipywidgets.FloatSlider(*args,**kw)])
-#                                         ipywidgets.BoundedFloatText(*args,**kw)])
 
 
 def TextWidget(*args, **kw):
