@@ -275,8 +275,23 @@ class Widgets(param.ParameterizedFunction):
             get_ipython().kernel.do_one_iteration()
 
 
-    label_format = """<div style="padding: 5px; width: {0};
-        text-align: right;">{1}</div>"""
+    tooltip_def = """
+        <style>
+          .ttip { position: relative; display: inline-block; }
+          .ttip .ttiptext { visibility: hidden; background-color: lightgray;
+             color: black; border-radius: 6px; padding: 5px 0; text-align: center;
+             position: absolute; z-index: 1;}
+          .ttip:hover .ttiptext { visibility: visible; }
+        </style>
+        """
+
+    label_format = """<div class="ttip" style="padding: 5px; width: {0};
+                      text-align: right;">{1}</div>"""
+
+    def helptip(self,obj):
+        """Return HTML code formatting a tooltip if help is available"""
+        helptext = obj.__doc__
+        return """<span class="ttiptext">{0}</span>""".format(helptext) if helptext else ""
 
 
     def widgets(self):
@@ -286,15 +301,20 @@ class Widgets(param.ParameterizedFunction):
         ordered_params = OrderedDict(sorted(params, key=lambda x: x[1].precedence)).keys()
 
         # Format name specially
-        widgets = [ipywidgets.HTML("<b>"+self.parameterized.name+"</b>")]
-        ordered_params.pop(ordered_params.index('name'))
+        name = ordered_params.pop(ordered_params.index('name'))
+        widgets = [ipywidgets.HTML(self.tooltip_def +
+            '<div class="ttip"><b>{0}</b>'.format(self.parameterized.name)+"</div>")]
 
         label_width=self.p.label_width
         if callable(label_width):
             label_width = label_width(self.parameterized.params().keys())
 
-        widgets += [ipywidgets.HBox(children=[ipywidgets.HTML(self.label_format.format(label_width,pname)),
-                                              self.widget(pname)])
+        def format_name(pname):
+            name = self.label_format.format(label_width, pname +
+                                            self.helptip(self.parameterized.params(pname)))
+            return ipywidgets.HTML(name)
+
+        widgets += [ipywidgets.HBox(children=[format_name(pname),self.widget(pname)])
                    for pname in ordered_params]
 
         if self.p.button and not (self.p.callback is None and self.p.next_n==0):
