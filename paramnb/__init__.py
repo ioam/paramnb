@@ -3,7 +3,7 @@ Jupyter notebook interface for Param (https://github.com/ioam/param).
 
 Given a Parameterized object, displays a box with an ipywidget for each
 Parameter, allowing users to view and and manipulate Parameter values
-from within a Jupyter/IPython notebook.  
+from within a Jupyter/IPython notebook.
 """
 
 import time
@@ -31,7 +31,7 @@ class FileSelector(param.ObjectSelector):
         super(FileSelector, self).__init__(default, **kwargs)
         self.path = path
         self.update()
-        
+
     def update(self):
         self.objects = sorted(glob.glob(self.path))
         if self.default in self.objects:
@@ -69,8 +69,8 @@ class MultiFileSelector(ListSelector):
         super(MultiFileSelector, self).__init__(default, **kwargs)
         self.path = path
         self.update()
-        
-    def update(self):        
+
+    def update(self):
         self.objects = sorted(glob.glob(self.path))
         if self.default and all([o in self.objects for o in self.default]):
             return
@@ -136,7 +136,7 @@ def run_next_cells(n):
 
 def estimate_label_width(labels):
     """
-    Given a list of labels, estimate the width in pixels 
+    Given a list of labels, estimate the width in pixels
     and return in a format accepted by CSS.
     Necessarily an approximation, since the font is unknown
     and is usually proportionally spaced.
@@ -147,7 +147,7 @@ def estimate_label_width(labels):
 
 def named_objs(objlist):
     """
-    Given a list of objects, returns a dictionary mapping from 
+    Given a list of objects, returns a dictionary mapping from
     string name for the object to the object itself.
     """
     return {k.__name__ if hasattr(k, '__name__') else str(k) : obj
@@ -157,7 +157,7 @@ def named_objs(objlist):
 class Widgets(param.ParameterizedFunction):
 
     callback = param.Callable(default=None, doc="""
-        Custom callable to execute on button press 
+        Custom callable to execute on button press
         (if `button`) else whenever a widget is changed,
         Should accept a Parameterized object argument.""")
 
@@ -167,13 +167,13 @@ class Widgets(param.ParameterizedFunction):
 
     button = param.Boolean(default=False, doc="""
         Whether to show a button to control cell execution
-        If false, will execute `next` cells on any widget 
+        If false, will execute `next` cells on any widget
         value change.""")
 
     label_width = param.Parameter(default=estimate_label_width, doc="""
         Width of the description for parameters in the list, using any
-        string specification accepted by CSS (e.g. "100px" or "50%"). 
-        If set to a callable, will call that function using the list of 
+        string specification accepted by CSS (e.g. "100px" or "50%").
+        If set to a callable, will call that function using the list of
         all labels to get the value.""")
 
 
@@ -182,13 +182,13 @@ class Widgets(param.ParameterizedFunction):
         self._widgets = {}
         self.parameterized = parameterized
         self.blocked = self.p.next_n>0 or self.p.callback and not self.p.button
-        
+
         widgets = self.widgets()
         layout = ipywidgets.Layout(display='flex', flex_flow='row')
         vbox = ipywidgets.VBox(children=widgets, layout=layout)
 
         display(vbox)
-        
+
         self.event_loop()
 
     def _make_widget(self, p_name):
@@ -203,7 +203,7 @@ class Widgets(param.ParameterizedFunction):
 
         if hasattr(p_obj, 'get_soft_bounds'):
             kw['min'], kw['max'] = p_obj.get_soft_bounds()
-           
+
         w = widget_class(**kw)
 
         def change_event(event):
@@ -220,7 +220,7 @@ class Widgets(param.ParameterizedFunction):
                 p_obj = self.parameterized.params(p_name)
                 p_obj.path = new_values
                 p_obj.update()
-                
+
                 # Update default value in widget, ensuring it's always a legal option
                 selector = self._widgets[p_name].children[1]
                 defaults = p_obj.default
@@ -229,7 +229,7 @@ class Widgets(param.ParameterizedFunction):
                 selector.options.update(named_objs(zip(defaults,defaults)))
                 selector.value=p_obj.default
                 selector.options=named_objs(p_obj.get_range().iteritems())
-                
+
                 if p_obj.objects and not self.p.button:
                     self.execute_widget(None)
 
@@ -260,13 +260,13 @@ class Widgets(param.ParameterizedFunction):
             get_ipython().kernel.do_one_iteration()
 
 
-    label_format = """<div style="padding: 5px; width: {0}; 
+    label_format = """<div style="padding: 5px; width: {0};
         text-align: right;">{1}</div>"""
-            
+
 
     def widgets(self):
         """Return name,widget boxes for all parameters (i.e., a property sheet)"""
-        
+
         params = self.parameterized.params().items()
         ordered_params = OrderedDict(sorted(params, key=lambda x: x[1].precedence)).keys()
 
