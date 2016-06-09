@@ -191,6 +191,10 @@ class Widgets(param.ParameterizedFunction):
         If set to a callable, will call that function using the list of
         all labels to get the value.""")
 
+    tooltips = param.Boolean(default=True, doc="""
+        Whether to add tooltips to the parameter names to show their
+        docstrings.""")
+
 
     def __call__(self, parameterized, **params):
         self.p = param.ParamOverrides(self, params)
@@ -291,7 +295,8 @@ class Widgets(param.ParameterizedFunction):
     def helptip(self,obj):
         """Return HTML code formatting a tooltip if help is available"""
         helptext = obj.__doc__
-        return """<span class="ttiptext">{0}</span>""".format(helptext) if helptext else ""
+        if not self.p.tooltips or not helptext: return ""
+        return """<span class="ttiptext">{0}</span>""".format(helptext)
 
 
     def widgets(self):
