@@ -284,7 +284,8 @@ class Widgets(param.ParameterizedFunction):
           .ttip { position: relative; display: inline-block; }
           .ttip .ttiptext { visibility: hidden; background-color: lightgray;
              color: black; border-radius: 6px; padding: 5px; text-align: center;
-             position: absolute; z-index: 100; min-width: 200px; }
+             position: absolute; left: 103%; top: 0px;
+             z-index: 100; min-width: 200px; }
           .ttip:hover .ttiptext { visibility: visible; }
         </style>
         """
