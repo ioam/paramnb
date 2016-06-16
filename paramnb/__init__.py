@@ -200,15 +200,12 @@ class Widgets(param.ParameterizedFunction):
         self.p = param.ParamOverrides(self, params)
         self._widgets = {}
         self.parameterized = parameterized
-        self.blocked = self.p.next_n>0 or self.p.callback and not self.p.button
 
         widgets = self.widgets()
         layout = ipywidgets.Layout(display='flex', flex_flow='row')
         vbox = ipywidgets.VBox(children=widgets, layout=layout)
 
         display(vbox)
-
-        self.event_loop()
 
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
@@ -267,17 +264,9 @@ class Widgets(param.ParameterizedFunction):
 
 
     def execute_widget(self, event):
-        self.blocked = False
         run_next_cells(self.p.next_n)
         if self.p.callback is not None:
             self.p.callback(self.parameterized)
-
-
-    def event_loop(self):
-        while self.blocked:
-            time.sleep(0.01)
-            get_ipython().kernel.do_one_iteration()
-
 
     tooltip_def = """
         <style>
