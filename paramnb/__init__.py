@@ -281,7 +281,8 @@ class Widgets(param.ParameterizedFunction):
         if self.p.callback is not None:
             self.p.callback(self.parameterized)
 
-    tooltip_def = """
+    # Define tooltips, other settings
+    preamble = """
         <style>
           .ttip { position: relative; display: inline-block; }
           .ttip .ttiptext { visibility: hidden; background-color: lightgray;
@@ -289,6 +290,7 @@ class Widgets(param.ParameterizedFunction):
              position: absolute; left: 103%; top: 0px;
              z-index: 100; min-width: 200px; }
           .ttip:hover .ttiptext { visibility: visible; }
+          .widget-dropdown .dropdown-menu { width: 100% }
         </style>
         """
 
@@ -310,7 +312,7 @@ class Widgets(param.ParameterizedFunction):
 
         # Format name specially
         name = ordered_params.pop(ordered_params.index('name'))
-        widgets = [ipywidgets.HTML(self.tooltip_def +
+        widgets = [ipywidgets.HTML(self.preamble +
             '<div class="ttip"><b>{0}</b>'.format(self.parameterized.name)+"</div>")]
 
         label_width=self.p.label_width
