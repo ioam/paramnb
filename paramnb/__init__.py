@@ -9,6 +9,7 @@ from within a Jupyter/IPython notebook.
 import sys
 import time
 import glob
+import types
 
 from os.path import commonprefix, dirname, sep
 
@@ -279,7 +280,11 @@ class Widgets(param.ParameterizedFunction):
     def execute_widget(self, event):
         run_next_cells(self.p.next_n)
         if self.p.callback is not None:
-            self.p.callback(self.parameterized)
+            if (isinstance(self.p.callback, types.UnboundMethodType) and
+                self.p.callback.im_self is self.parameterized):
+                self.p.callback()
+            else:
+                self.p.callback(self.parameterized)
 
     # Define tooltips, other settings
     preamble = """
