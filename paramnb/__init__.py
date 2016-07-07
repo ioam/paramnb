@@ -194,6 +194,11 @@ class Widgets(param.ParameterizedFunction):
         When executing cells, integer number to execute (or 'all').
         A value of zero means not to control cell execution.""")
 
+    on_init = param.Boolean(default=False, doc="""
+        Whether to do the action normally taken (executing cells
+        and/or calling a callable) when first instantiating this
+        object.""")
+
     button = param.Boolean(default=False, doc="""
         Whether to show a button to control cell execution
         If false, will execute `next` cells on any widget
@@ -221,6 +226,9 @@ class Widgets(param.ParameterizedFunction):
 
         display(vbox)
 
+        if self.p.on_init:
+            self.execute_widget(None)
+        
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
         widget_class, widget_options = wtype(p_obj)
