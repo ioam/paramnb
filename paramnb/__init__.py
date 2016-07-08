@@ -100,13 +100,12 @@ class MultiFileSelector(ListSelector):
         return abbreviate_paths(self.path,super(MultiFileSelector, self).get_range())
 
 
-class Button(param.Callable):
-    """A GUI-specific parameter to display a button."""
-    __slots__ = ['on_click']
-
-    def __init__(self,default=None,on_click=None,**params):
-        param.Callable.__init__(self,default=default,**params)
-        self.on_click = on_click
+# belongs in Param
+class Action(param.Callable):
+    """
+    A user-provided function that can be invoked like a class or object method using ().
+    In a GUI, this might be mapped to a button, but it can be invoked directly as well.
+    """
 
     
 def NumericWidget(*args, **kw):
@@ -123,14 +122,13 @@ def TextWidget(*args, **kw):
     return ipywidgets.Text(*args,**kw)
 
 
-def ButtonWidget(*args, **kw):
-    """Returns a ipywidgets.Button for a paramnb.Button parameter"""
+def ActionButton(*args, **kw):
+    """Returns a ipywidgets.Button executing a paramnb.Action."""
     kw['description'] = str(kw['name'])
-    on_click = kw.pop('on_click',None)
+    value = kw["value"]
     w = ipywidgets.Button(*args,**kw)
-    if on_click: w.on_click(on_click)
+    if value: w.on_click(value)
     return w
-
 
 # Maps from Parameter type to ipython widget types with any options desired
 ptype2wtype = {
@@ -140,7 +138,7 @@ ptype2wtype = {
     param.Number:    (NumericWidget,              {}),
     param.Integer:   (ipywidgets.IntSlider,       {}),
     ListSelector:    (ipywidgets.SelectMultiple,  {}),
-    Button:          (ButtonWidget,               {}),
+    Action:          (ActionButton,               {}),
 }
 
 
@@ -251,9 +249,6 @@ class Widgets(param.ParameterizedFunction):
 
         if hasattr(p_obj, 'get_range'):
             kw['options'] = named_objs(p_obj.get_range().iteritems())
-
-        if hasattr(p_obj, 'on_click'):
-            kw['on_click'] = p_obj.on_click
 
         if hasattr(p_obj, 'get_soft_bounds'):
             kw['min'], kw['max'] = p_obj.get_soft_bounds()
