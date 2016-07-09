@@ -132,19 +132,19 @@ def ActionButton(*args, **kw):
 
 # Maps from Parameter type to ipython widget types with any options desired
 ptype2wtype = {
-    param.Parameter: (TextWidget,                 {}),
-    param.Selector:  (ipywidgets.Dropdown,        {}),
-    param.Boolean:   (ipywidgets.Checkbox,        {}),
-    param.Number:    (NumericWidget,              {}),
-    param.Integer:   (ipywidgets.IntSlider,       {}),
-    ListSelector:    (ipywidgets.SelectMultiple,  {}),
-    Action:          (ActionButton,               {}),
+    param.Parameter: TextWidget,
+    param.Selector:  ipywidgets.Dropdown,
+    param.Boolean:   ipywidgets.Checkbox,
+    param.Number:    NumericWidget,
+    param.Integer:   ipywidgets.IntSlider,
+    ListSelector:    ipywidgets.SelectMultiple,
+    Action:          ActionButton,
 }
 
 
 def wtype(pobj):
     if pobj.constant: # Ensure constant parameters cannot be edited
-        return (ipywidgets.HTML, {})
+        return ipywidgets.HTML
     for t in classlist(type(pobj))[::-1]:
         if t in ptype2wtype:
             return ptype2wtype[t]
@@ -213,7 +213,7 @@ class Widgets(param.ParameterizedFunction):
         A value of zero means not to control cell execution.""")
 
     button = param.Boolean(default=False, doc="""
-        Whether to show a button to control cell execution
+        Whether to show a button to control cell execution.
         If false, will execute `next` cells on any widget
         value change.""")
 
@@ -241,11 +241,10 @@ class Widgets(param.ParameterizedFunction):
 
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
-        widget_class, widget_options = wtype(p_obj)
+        widget_class = wtype(p_obj)
 
         kw = dict(value=getattr(self.parameterized, p_name), tooltip=p_obj.doc)
         kw['name'] = p_name
-        kw.update(widget_options)
 
         if hasattr(p_obj, 'get_range'):
             kw['options'] = named_objs(p_obj.get_range().iteritems())
@@ -259,7 +258,7 @@ class Widgets(param.ParameterizedFunction):
             new_values = event['new']
             setattr(self.parameterized, p_name, new_values)
             if not self.p.button:
-                self.execute_widget(None)
+                self.execute(None)
         w.observe(change_event, 'value')
 
         # Hack ; should be part of Widget classes
@@ -280,7 +279,7 @@ class Widgets(param.ParameterizedFunction):
                 selector.options=named_objs(p_obj.get_range().iteritems())
 
                 if p_obj.objects and not self.p.button:
-                    self.execute_widget(None)
+                    self.execute(None)
 
             path_w = ipywidgets.Text(value=p_obj.path)
             path_w.observe(path_change_event, 'value')
@@ -296,7 +295,7 @@ class Widgets(param.ParameterizedFunction):
         return self._widgets[param_name]
 
 
-    def execute_widget(self, event):
+    def execute(self, event):
         run_next_cells(self.p.next_n)
         if self.p.callback is not None:
             if (isinstance(self.p.callback, types.UnboundMethodType) and
@@ -354,7 +353,7 @@ class Widgets(param.ParameterizedFunction):
         if self.p.button and not (self.p.callback is None and self.p.next_n==0):
             label = 'Run %s' % self.p.next_n if self.p.next_n>0 else "Run"
             display_button = ipywidgets.Button(description=label)
-            display_button.on_click(self.execute_widget)
+            display_button.on_click(self.execute)
             widgets.append(display_button)
 
         return widgets
