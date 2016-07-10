@@ -113,7 +113,7 @@ def NumericWidget(*args, **kw):
     if (kw['min'] is None or kw['max'] is None):
         return ipywidgets.FloatText(*args,**kw)
     else:
-        return ipywidgets.HBox(children=[ipywidgets.FloatSlider(*args,**kw)])
+        return ipywidgets.FloatSlider(*args,**kw)
 
 
 def TextWidget(*args, **kw):
