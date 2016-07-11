@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import sys
 
 try:
     from setuptools import setup
@@ -26,4 +27,8 @@ setup_args.update(dict(
 
 
 if __name__=="__main__":
+    if ('upload' in sys.argv) or ('sdist' in sys.argv):
+        import param
+        param.__version__.verify(setup_args['version'])
+
     setup(**setup_args)
