@@ -10,7 +10,7 @@ setup_args = {}
 
 setup_args.update(dict(
     name='paramnb',
-    version="0.0.1",
+    version="1.0.0",
     description='Generate ipywidgets from Parameterized objects in the notebook',
     long_description=open('README.rst').read() if os.path.isfile('README.rst') else 'Consult README.rst',
     author= "philippjfr",

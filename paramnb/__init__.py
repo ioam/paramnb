@@ -23,6 +23,9 @@ import ipywidgets
 import param
 from param.parameterized import classlist
 
+__version__ = param.Version(release=(1,0,0), fpath=__file__,
+                             commit="$Format:%h$", reponame='paramnb')
+
 if sys.version_info.major == 3:
     unicode = str
     basestring = str
