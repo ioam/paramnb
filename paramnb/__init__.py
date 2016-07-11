@@ -34,7 +34,7 @@ def abbreviate_paths(pathspec,named_paths):
     Helps keep menu items short yet unambiguous.
     """
     prefix = commonprefix([dirname(name)+sep for name in named_paths.keys()]+[pathspec])
-    return {name[len(prefix):]:path for name,path in named_paths.iteritems()}
+    return {name[len(prefix):]:path for name,path in named_paths.items()}
 
 
 # belongs in Param
@@ -108,12 +108,16 @@ class Action(param.Callable):
     """
 
     
-def NumericWidget(*args, **kw):
+def FloatWidget(*args, **kw):
     """Returns appropriate slider or text boxes depending on bounds"""
-    if (kw['min'] is None or kw['max'] is None):
-        return ipywidgets.FloatText(*args,**kw)
-    else:
-        return ipywidgets.FloatSlider(*args,**kw)
+    has_bounds = not (kw['min'] is None or kw['max'] is None)
+    return (ipywidgets.FloatSlider if has_bounds else ipywidgets.FloatText)(*args,**kw)
+
+
+def IntegerWidget(*args, **kw):
+    """Returns appropriate slider or text boxes depending on bounds"""
+    has_bounds = not (kw['min'] is None or kw['max'] is None)
+    return (ipywidgets.IntSlider if has_bounds else ipywidgets.IntText)(*args,**kw)
 
 
 def TextWidget(*args, **kw):
@@ -135,8 +139,8 @@ ptype2wtype = {
     param.Parameter: TextWidget,
     param.Selector:  ipywidgets.Dropdown,
     param.Boolean:   ipywidgets.Checkbox,
-    param.Number:    NumericWidget,
-    param.Integer:   ipywidgets.IntSlider,
+    param.Number:    FloatWidget,
+    param.Integer:   IntegerWidget,
     ListSelector:    ipywidgets.SelectMultiple,
     Action:          ActionButton,
 }
@@ -193,7 +197,7 @@ def named_objs(objlist):
     for k, obj in objlist:
         if hasattr(k, '__name__'):
             k = k.__name__
-        elif isinstance(k, basestring):
+        elif sys.version_info < (3,0) and isinstance(k, basestring):
             k = unicode(k.decode('utf-8'))
         else:
             k = unicode(k)
@@ -247,7 +251,7 @@ class Widgets(param.ParameterizedFunction):
         kw['name'] = p_name
 
         if hasattr(p_obj, 'get_range'):
-            kw['options'] = named_objs(p_obj.get_range().iteritems())
+            kw['options'] = named_objs(p_obj.get_range().items())
 
         if hasattr(p_obj, 'get_soft_bounds'):
             kw['min'], kw['max'] = p_obj.get_soft_bounds()
@@ -276,7 +280,7 @@ class Widgets(param.ParameterizedFunction):
                     defaults = [defaults]
                 selector.options.update(named_objs(zip(defaults,defaults)))
                 selector.value=p_obj.default
-                selector.options=named_objs(p_obj.get_range().iteritems())
+                selector.options=named_objs(p_obj.get_range().items())
 
                 if p_obj.objects and not self.p.button:
                     self.execute(None)
@@ -298,9 +302,10 @@ class Widgets(param.ParameterizedFunction):
     def execute(self, event):
         run_next_cells(self.p.next_n)
         if self.p.callback is not None:
-            if (isinstance(self.p.callback, types.UnboundMethodType) and
-                self.p.callback.im_self is self.parameterized):
-                self.p.callback()
+
+            if (sys.version_info < (3,0) and isinstance(self.p.callback, types.UnboundMethodType)
+                and  self.p.callback.im_self is self.parameterized):
+               self.p.callback()
             else:
                 self.p.callback(self.parameterized)
 
@@ -331,8 +336,8 @@ class Widgets(param.ParameterizedFunction):
         """Return name,widget boxes for all parameters (i.e., a property sheet)"""
 
         params = self.parameterized.params().items()
-        ordered_params = OrderedDict(sorted(params, key=lambda x: x[1].precedence)).keys()
-
+        ordered_params = list(OrderedDict(sorted(params, key=lambda x: x[1].precedence if x[1].precedence else -100)).keys())
+        
         # Format name specially
         name = ordered_params.pop(ordered_params.index('name'))
         widgets = [ipywidgets.HTML(self.preamble +
