@@ -185,7 +185,7 @@ def estimate_label_width(labels):
     and is usually proportionally spaced.
     """
     max_length = max([len(l) for l in labels])
-    return "{0}px".format(max(8,int(max_length*7.5)))
+    return "{0}px".format(max(60,int(max_length*7.5)))
 
 
 def named_objs(objlist):
