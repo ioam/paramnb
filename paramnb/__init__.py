@@ -169,7 +169,7 @@ class Widgets(param.ParameterizedFunction):
 
         if self.p.on_init:
             self.execute_widget(None)
-        
+
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
         widget_class = wtype(p_obj)
@@ -264,7 +264,7 @@ class Widgets(param.ParameterizedFunction):
 
         params = self.parameterized.params().items()
         ordered_params = list(OrderedDict(sorted(params, key=lambda x: x[1].precedence if x[1].precedence else -100)).keys())
-        
+
         # Format name specially
         name = ordered_params.pop(ordered_params.index('name'))
         widgets = [ipywidgets.HTML(self.preamble +
