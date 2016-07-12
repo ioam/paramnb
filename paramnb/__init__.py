@@ -8,6 +8,7 @@ from within a Jupyter/IPython notebook.
 
 import sys
 import types
+import itertools
 
 from collections import OrderedDict
 
@@ -263,7 +264,13 @@ class Widgets(param.ParameterizedFunction):
         """Return name,widget boxes for all parameters (i.e., a property sheet)"""
 
         params = self.parameterized.params().items()
-        ordered_params = list(OrderedDict(sorted(params, key=lambda x: x[1].precedence if x[1].precedence else -100)).keys())
+        key_fn = lambda x: x[1].precedence if x[1].precedence else 0
+        sorted_precedence = sorted(params, key=key_fn)
+        filtered = [(k,p) for (k,p) in sorted_precedence if (p.precedence >= 0)
+                    or (p.precedence is None)]
+        groups = itertools.groupby(filtered, key=key_fn)
+        sorted_groups = [sorted(grp) for (k,grp) in groups]
+        ordered_params = [el[0] for group in sorted_groups for el in group]
 
         # Format name specially
         name = ordered_params.pop(ordered_params.index('name'))
