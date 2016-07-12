@@ -7,11 +7,7 @@ from within a Jupyter/IPython notebook.
 """
 
 import sys
-import time
-import glob
 import types
-
-from os.path import commonprefix, dirname, sep
 
 from collections import OrderedDict
 
@@ -31,86 +27,6 @@ if sys.version_info.major == 3:
     basestring = str
 
 
-def abbreviate_paths(pathspec,named_paths):
-    """
-    Given a dict of (pathname,path) pairs, removes any prefix shared by all pathnames.
-    Helps keep menu items short yet unambiguous.
-    """
-    prefix = commonprefix([dirname(name)+sep for name in named_paths.keys()]+[pathspec])
-    return {name[len(prefix):]:path for name,path in named_paths.items()}
-
-
-# belongs in Param
-class FileSelector(param.ObjectSelector):
-    """
-    Given a path glob, allows one file to be selected from those matching.
-    """
-    __slots__ = ['path']
-
-    def __init__(self, default=None, path="", **kwargs):
-        super(FileSelector, self).__init__(default, **kwargs)
-        self.path = path
-        self.update()
-
-    def update(self):
-        self.objects = sorted(glob.glob(self.path))
-        if self.default in self.objects:
-            return
-        self.default = self.objects[0] if self.objects else None
-
-    def get_range(self):
-        return abbreviate_paths(self.path,super(FileSelector, self).get_range())
-
-
-# belongs in Param
-class ListSelector(param.ObjectSelector):
-    """
-    Variant of ObjectSelector where the value can be multiple objects from
-    a list of possible objects.
-    """
-
-    def compute_default(self):
-        if self.default is None and callable(self.compute_default_fn):
-            self.default = self.compute_default_fn()
-            for o in self.default:
-                if self.default not in self.objects:
-                    self.objects.append(self.default)
-
-    def _check_value(self, val, obj=None):
-        for o in val:
-            super(ListSelector, self)._check_value(o, obj)
-
-
-# belongs in Param
-class MultiFileSelector(ListSelector):
-    """
-    Given a path glob, allows multiple files to be selected from the list of matches.
-    """
-    __slots__ = ['path']
-
-    def __init__(self, default=None, path="", **kwargs):
-        super(MultiFileSelector, self).__init__(default, **kwargs)
-        self.path = path
-        self.update()
-
-    def update(self):
-        self.objects = sorted(glob.glob(self.path))
-        if self.default and all([o in self.objects for o in self.default]):
-            return
-        self.default = self.objects
-
-    def get_range(self):
-        return abbreviate_paths(self.path,super(MultiFileSelector, self).get_range())
-
-
-# belongs in Param
-class Action(param.Callable):
-    """
-    A user-provided function that can be invoked like a class or object method using ().
-    In a GUI, this might be mapped to a button, but it can be invoked directly as well.
-    """
-
-    
 def FloatWidget(*args, **kw):
     """Returns appropriate slider or text boxes depending on bounds"""
     has_bounds = not (kw['min'] is None or kw['max'] is None)
@@ -139,13 +55,13 @@ def ActionButton(*args, **kw):
 
 # Maps from Parameter type to ipython widget types with any options desired
 ptype2wtype = {
-    param.Parameter: TextWidget,
-    param.Selector:  ipywidgets.Dropdown,
-    param.Boolean:   ipywidgets.Checkbox,
-    param.Number:    FloatWidget,
-    param.Integer:   IntegerWidget,
-    ListSelector:    ipywidgets.SelectMultiple,
-    Action:          ActionButton,
+    param.Parameter:     TextWidget,
+    param.Selector:      ipywidgets.Dropdown,
+    param.Boolean:       ipywidgets.Checkbox,
+    param.Number:        FloatWidget,
+    param.Integer:       IntegerWidget,
+    param.ListSelector:  ipywidgets.SelectMultiple,
+    param.Action:        ActionButton,
 }
 
 
