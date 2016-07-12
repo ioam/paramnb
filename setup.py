@@ -8,7 +8,7 @@ except ImportError:
     from distutils.core import setup
 
 setup_args = {}
-install_requires = ['param>=1.4.0']
+install_requires = ['param>=1.4.0', 'ipywidgets>=5.1.5']
 
 setup_args.update(dict(
     name='paramnb',
