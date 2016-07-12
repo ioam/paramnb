@@ -263,7 +263,12 @@ class Widgets(param.ParameterizedFunction):
         """Return name,widget boxes for all parameters (i.e., a property sheet)"""
 
         params = self.parameterized.params().items()
-        ordered_params = list(OrderedDict(sorted(params, key=lambda x: x[1].precedence if x[1].precedence else -100)).keys())
+        sorted_precedence = sorted(params().items(),
+                        key=lambda x: x[1].precedence if x[1].precedence else -float('inf'))
+        groups = itertools.groupby(sorted_precedence, key=lambda p: p[1].precedence
+                                   if p[1].precedence else -float('inf'))
+        sorted_groups = [sorted(grp) for (k,grp) in groups]
+        ordered_params = [el for group in sorted_groups for el in group]
 
         # Format name specially
         name = ordered_params.pop(ordered_params.index('name'))
