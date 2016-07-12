@@ -112,7 +112,7 @@ def named_objs(objlist):
     Given a list of objects, returns a dictionary mapping from
     string name for the object to the object itself.
     """
-    objs = {}
+    objs = OrderedDict()
     for k, obj in objlist:
         if hasattr(k, '__name__'):
             k = k.__name__
