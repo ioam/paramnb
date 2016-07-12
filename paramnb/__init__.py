@@ -263,10 +263,9 @@ class Widgets(param.ParameterizedFunction):
         """Return name,widget boxes for all parameters (i.e., a property sheet)"""
 
         params = self.parameterized.params().items()
-        sorted_precedence = sorted(params().items(),
-                        key=lambda x: x[1].precedence if x[1].precedence else -float('inf'))
-        groups = itertools.groupby(sorted_precedence, key=lambda p: p[1].precedence
-                                   if p[1].precedence else -float('inf'))
+        key_fn = lambda x: x[1].precedence if x[1].precedence else -float('inf')
+        sorted_precedence = sorted(params().items(), key=key_fn)
+        groups = itertools.groupby(sorted_precedence, key=key_fn)
         sorted_groups = [sorted(grp) for (k,grp) in groups]
         ordered_params = [el for group in sorted_groups for el in group]
 
