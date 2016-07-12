@@ -14,6 +14,7 @@ setup_args.update(dict(
     name='paramnb',
     version="1.0.0",
     install_requires = install_requires,
+    url = 'https://github.com/ioam/paramnb',
     description='Generate ipywidgets from Parameterized objects in the notebook',
     long_description=open('README.rst').read() if os.path.isfile('README.rst') else 'Consult README.rst',
     author= "IOAM",
