@@ -1,0 +1,30 @@
+package:
+  name: paramnb
+  version: 1.0.0
+
+source:
+  path: .
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - param
+    - ipywidgets
+  run:
+    - python
+    - ipywidgets
+    - param
+
+test:
+  imports:
+    - paramnb
+
+build:
+  noarch_python: True
+
+about:
+  home: http://github.com/ioam/paramnb
+  summary: Generate ipywidgets from Parameterized objects in the notebook
+  license: BSD
+
