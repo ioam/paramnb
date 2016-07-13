@@ -5,26 +5,27 @@ package:
 source:
   path: .
 
+extra:
+  channels:
+    - ioam
+    - conda-forge
+
 requirements:
   build:
     - python
     - setuptools
-    - param
-    - ipywidgets
+    - param >=1.4.1
+    - ipywidgets >=5.1.5
   run:
     - python
-    - ipywidgets
-    - param
+    - ipywidgets >=5.1.5
+    - param >=1.4.1
 
 test:
   imports:
     - paramnb
 
-build:
-  noarch_python: True
-
 about:
   home: http://github.com/ioam/paramnb
   summary: Generate ipywidgets from Parameterized objects in the notebook
   license: BSD
-
