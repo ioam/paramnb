@@ -155,7 +155,11 @@ class Widgets(param.ParameterizedFunction):
     tooltips = param.Boolean(default=True, doc="""
         Whether to add tooltips to the parameter names to show their
         docstrings.""")
+    
+    show_labels = param.Boolean(default=True)
 
+    display_threshold = param.Number(default=0,precedence=-10,doc="""
+        Parameters with precedence below this value are not displayed.""")
 
     def __call__(self, parameterized, **params):
         self.p = param.ParamOverrides(self, params)
@@ -266,8 +270,8 @@ class Widgets(param.ParameterizedFunction):
         params = self.parameterized.params().items()
         key_fn = lambda x: x[1].precedence if x[1].precedence else 0
         sorted_precedence = sorted(params, key=key_fn)
-        filtered = [(k,p) for (k,p) in sorted_precedence if (p.precedence >= 0)
-                    or (p.precedence is None)]
+        filtered = [(k,p) for (k,p) in sorted_precedence 
+                    if (p.precedence >= self.p.display_threshold) or (p.precedence is None)]
         groups = itertools.groupby(filtered, key=key_fn)
         sorted_groups = [sorted(grp) for (k,grp) in groups]
         ordered_params = [el[0] for group in sorted_groups for el in group]
@@ -286,8 +290,11 @@ class Widgets(param.ParameterizedFunction):
                                             self.helptip(self.parameterized.params(pname)))
             return ipywidgets.HTML(name)
 
-        widgets += [ipywidgets.HBox(children=[format_name(pname),self.widget(pname)])
-                   for pname in ordered_params]
+        if self.p.show_labels:
+            widgets += [ipywidgets.HBox(children=[format_name(pname),self.widget(pname)])
+                        for pname in ordered_params]
+        else:
+            widgets += [self.widget(pname) for pname in ordered_params]
 
         if self.p.button and not (self.p.callback is None and self.p.next_n==0):
             label = 'Run %s' % self.p.next_n if self.p.next_n>0 else "Run"
