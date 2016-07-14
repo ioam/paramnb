@@ -286,9 +286,10 @@ class Widgets(param.ParameterizedFunction):
             label_width = label_width(self.parameterized.params().keys())
 
         def format_name(pname):
-            name = self.label_format.format(label_width, pname +
-                                            self.helptip(self.parameterized.params(pname)))
-            return ipywidgets.HTML(name)
+            p = self.parameterized.params(pname)
+            # omit name for buttons, which already show the name on the button
+            name = "" if issubclass(type(p),param.Action) else pname
+            return ipywidgets.HTML(self.label_format.format(label_width, name + self.helptip(p)))
 
         if self.p.show_labels:
             widgets += [ipywidgets.HBox(children=[format_name(pname),self.widget(pname)])
