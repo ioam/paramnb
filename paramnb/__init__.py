@@ -245,10 +245,10 @@ class Widgets(param.ParameterizedFunction):
     preamble = """
         <style>
           .ttip { position: relative; display: inline-block; }
-          .ttip .ttiptext { visibility: hidden; background-color: lightgray;
-             color: black; border-radius: 6px; padding: 5px; text-align: center;
-             position: absolute; left: 103%; top: 0px;
-             z-index: 100; min-width: 200px; }
+          .ttip .ttiptext { visibility: hidden; background-color: #F8F8F8; outline: #CCCCCC solid thin;
+             color: black; border-radius: 2px; padding: 2px; text-align: center;
+             position: absolute; left: 53%; top: 30px; box-shadow: 7px 7px 10px #DDDDDD;
+             z-index: 100; min-width: 100px; font-size: 80%}
           .ttip:hover .ttiptext { visibility: visible; }
           .widget-dropdown .dropdown-menu { width: 100% }
         </style>
