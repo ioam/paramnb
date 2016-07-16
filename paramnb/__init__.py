@@ -155,7 +155,17 @@ class Widgets(param.ParameterizedFunction):
     tooltips = param.Boolean(default=True, doc="""
         Whether to add tooltips to the parameter names to show their
         docstrings.""")
+    
+    show_labels = param.Boolean(default=True)
 
+    display_threshold = param.Number(default=0,precedence=-10,doc="""
+        Parameters with precedence below this value are not displayed.""")
+
+    default_precedence = param.Number(default=1e-8,precedence=-10,doc="""
+        Precedence value to use for parameters with no declared precedence.
+        By default, zero predecence is available for forcing some parameters
+        to the top of the list, and other values above the default_precedence
+        values can be used to sort or group parameters arbitrarily.""")
 
     def __call__(self, parameterized, **params):
         self.p = param.ParamOverrides(self, params)
@@ -241,10 +251,10 @@ class Widgets(param.ParameterizedFunction):
     preamble = """
         <style>
           .ttip { position: relative; display: inline-block; }
-          .ttip .ttiptext { visibility: hidden; background-color: lightgray;
-             color: black; border-radius: 6px; padding: 5px; text-align: center;
-             position: absolute; left: 103%; top: 0px;
-             z-index: 100; min-width: 200px; }
+          .ttip .ttiptext { visibility: hidden; background-color: #F8F8F8; outline: #CCCCCC solid thin;
+             color: black; border-radius: 2px; padding: 2px; text-align: center;
+             position: absolute; left: 53%; top: 30px; box-shadow: 7px 7px 10px #DDDDDD;
+             z-index: 100; min-width: 100px; font-size: 80%}
           .ttip:hover .ttiptext { visibility: visible; }
           .widget-dropdown .dropdown-menu { width: 100% }
         </style>
@@ -264,10 +274,10 @@ class Widgets(param.ParameterizedFunction):
         """Return name,widget boxes for all parameters (i.e., a property sheet)"""
 
         params = self.parameterized.params().items()
-        key_fn = lambda x: x[1].precedence if x[1].precedence else 0
+        key_fn = lambda x: x[1].precedence if x[1].precedence else self.p.default_precedence
         sorted_precedence = sorted(params, key=key_fn)
-        filtered = [(k,p) for (k,p) in sorted_precedence if (p.precedence >= 0)
-                    or (p.precedence is None)]
+        filtered = [(k,p) for (k,p) in sorted_precedence 
+                    if (p.precedence >= self.p.display_threshold) or (p.precedence is None)]
         groups = itertools.groupby(filtered, key=key_fn)
         sorted_groups = [sorted(grp) for (k,grp) in groups]
         ordered_params = [el[0] for group in sorted_groups for el in group]
@@ -282,12 +292,16 @@ class Widgets(param.ParameterizedFunction):
             label_width = label_width(self.parameterized.params().keys())
 
         def format_name(pname):
-            name = self.label_format.format(label_width, pname +
-                                            self.helptip(self.parameterized.params(pname)))
-            return ipywidgets.HTML(name)
+            p = self.parameterized.params(pname)
+            # omit name for buttons, which already show the name on the button
+            name = "" if issubclass(type(p),param.Action) else pname
+            return ipywidgets.HTML(self.label_format.format(label_width, name + self.helptip(p)))
 
-        widgets += [ipywidgets.HBox(children=[format_name(pname),self.widget(pname)])
-                   for pname in ordered_params]
+        if self.p.show_labels:
+            widgets += [ipywidgets.HBox(children=[format_name(pname),self.widget(pname)])
+                        for pname in ordered_params]
+        else:
+            widgets += [self.widget(pname) for pname in ordered_params]
 
         if self.p.button and not (self.p.callback is None and self.p.next_n==0):
             label = 'Run %s' % self.p.next_n if self.p.next_n>0 else "Run"
