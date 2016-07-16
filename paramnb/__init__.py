@@ -161,6 +161,12 @@ class Widgets(param.ParameterizedFunction):
     display_threshold = param.Number(default=0,precedence=-10,doc="""
         Parameters with precedence below this value are not displayed.""")
 
+    default_precedence = param.Number(default=1e-8,precedence=-10,doc="""
+        Precedence value to use for parameters with no declared precedence.
+        By default, zero predecence is available for forcing some parameters
+        to the top of the list, and other values above the default_precedence
+        values can be used to sort or group parameters arbitrarily.""")
+
     def __call__(self, parameterized, **params):
         self.p = param.ParamOverrides(self, params)
         self._widgets = {}
@@ -268,7 +274,7 @@ class Widgets(param.ParameterizedFunction):
         """Return name,widget boxes for all parameters (i.e., a property sheet)"""
 
         params = self.parameterized.params().items()
-        key_fn = lambda x: x[1].precedence if x[1].precedence else 0
+        key_fn = lambda x: x[1].precedence if x[1].precedence else self.p.default_precedence
         sorted_precedence = sorted(params, key=key_fn)
         filtered = [(k,p) for (k,p) in sorted_precedence 
                     if (p.precedence >= self.p.display_threshold) or (p.precedence is None)]
