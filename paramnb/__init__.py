@@ -179,7 +179,7 @@ class Widgets(param.ParameterizedFunction):
         display(vbox)
 
         if self.p.on_init:
-            self.execute_widget(None)
+            self.execute(None)
 
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
