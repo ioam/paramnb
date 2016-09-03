@@ -277,7 +277,7 @@ class Widgets(param.ParameterizedFunction):
         key_fn = lambda x: x[1].precedence if x[1].precedence else self.p.default_precedence
         sorted_precedence = sorted(params, key=key_fn)
         filtered = [(k,p) for (k,p) in sorted_precedence 
-                    if (p.precedence >= self.p.display_threshold) or (p.precedence is None)]
+                    if (p.precedence is None) or (p.precedence >= self.p.display_threshold)]
         groups = itertools.groupby(filtered, key=key_fn)
         sorted_groups = [sorted(grp) for (k,grp) in groups]
         ordered_params = [el[0] for group in sorted_groups for el in group]
