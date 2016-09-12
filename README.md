@@ -1,6 +1,6 @@
 # ParamNB
 
-Generate ipywidgets from Parameterized objects in a Jupyter notebook.
+Generate ipywidgets from [Parameterized](https://github.com/ioam/param) objects in a Jupyter notebook.
 
 See the demo notebook in doc/index.ipynb for examples.  A static
 version of that notebook is available on 
