@@ -327,7 +327,11 @@ class Widgets(param.ParameterizedFunction):
 class JSONInit(param.ParameterizedFunction):
     """
     Callable that can be passed to Widgets.initializer to set Parameter
-    values based on environment variables encoding JSON.
+    values using JSON. There are three approaches that may be used:
+
+    1. If the json_file argument is specified, this takes precedence.
+    2. The JSON file path can be specified via an environment variable.
+    3. The JSON can be read directly from an environment variable.
 
     Here is an easy example of setting such an environment variable on
     the commandline:
