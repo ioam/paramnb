@@ -359,7 +359,14 @@ class EnvironmentInit(param.ParameterizedFunction):
         env_var = os.environ.get(p.varname, None)
         if env_var is None: return
 
-        spec = json.loads(env_var)
+        if env_var.endswith('.json'):
+            try:
+                spec = json.load(open(os.path.abspath(env_var), 'r'))
+            except:
+                warnobj.warning('Could not load JSON file %r' % spec)
+        else:
+            spec = json.loads(env_var)
+
         if not isinstance(spec, dict):
             warnobj.warning('JSON parameter specification must be a dictionary.')
             return
