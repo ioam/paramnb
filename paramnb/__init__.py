@@ -347,6 +347,9 @@ class EnvironmentInit(param.ParameterizedFunction):
         Optional key in the JSON specification dictionary containing the
         desired parameter values.""")
 
+    json_file = param.String(default=None, doc="""
+        Optional path to a JSON file containing the parameter settings.""")
+
     def __call__(self, parameterized):
 
         warnobj = param.main if isinstance(parameterized, type) else parameterized
@@ -357,11 +360,12 @@ class EnvironmentInit(param.ParameterizedFunction):
         target = p.target if p.target is not None else param_class.__name__
 
         env_var = os.environ.get(p.varname, None)
-        if env_var is None: return
+        if env_var is None and p.json_file is None: return
 
-        if env_var.endswith('.json'):
+        if p.json_file or env_var.endswith('.json'):
             try:
-                spec = json.load(open(os.path.abspath(env_var), 'r'))
+                fname = p.json_file if p.json_file else env_var
+                spec = json.load(open(os.path.abspath(fname), 'r'))
             except:
                 warnobj.warning('Could not load JSON file %r' % spec)
         else:
