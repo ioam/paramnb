@@ -7,8 +7,10 @@ from within a Jupyter/IPython notebook.
 """
 
 import sys
+import os
 import types
 import itertools
+import json
 
 from collections import OrderedDict
 
@@ -167,8 +169,18 @@ class Widgets(param.ParameterizedFunction):
         to the top of the list, and other values above the default_precedence
         values can be used to sort or group parameters arbitrarily.""")
 
+    initializer = param.Callable(default=None, doc="""
+        User-supplied function that will be called on initialization,
+        usually to update the default Parameter values of the
+        underlying parameterized object.""")
+
     def __call__(self, parameterized, **params):
+
+
         self.p = param.ParamOverrides(self, params)
+        if self.p.initializer:
+            self.p.initializer(parameterized)
+
         self._widgets = {}
         self.parameterized = parameterized
 
@@ -310,3 +322,70 @@ class Widgets(param.ParameterizedFunction):
             widgets.append(display_button)
 
         return widgets
+
+
+class JSONInit(param.ParameterizedFunction):
+    """
+    Callable that can be passed to Widgets.initializer to set Parameter
+    values using JSON. There are three approaches that may be used:
+
+    1. If the json_file argument is specified, this takes precedence.
+    2. The JSON file path can be specified via an environment variable.
+    3. The JSON can be read directly from an environment variable.
+
+    Here is an easy example of setting such an environment variable on
+    the commandline:
+
+    PARAMNB_INIT='{"p1":5}' jupyter notebook
+
+    This addresses any JSONInit instances that are inspecting the
+    default environment variable called PARAMNB_INIT, instructing it to set
+    the 'p1' parameter to 5.
+    """
+
+    varname = param.String(default='PARAMNB_INIT', doc="""
+        The name of the environment variable containing the JSON
+        specification.""")
+
+    target = param.String(default=None, doc="""
+        Optional key in the JSON specification dictionary containing the
+        desired parameter values.""")
+
+    json_file = param.String(default=None, doc="""
+        Optional path to a JSON file containing the parameter settings.""")
+
+    def __call__(self, parameterized):
+
+        warnobj = param.main if isinstance(parameterized, type) else parameterized
+        param_class = (parameterized if isinstance(parameterized, type)
+                       else parameterized.__class__)
+
+        p = param.ParamOverrides(self, {})
+        target = p.target if p.target is not None else param_class.__name__
+
+        env_var = os.environ.get(p.varname, None)
+        if env_var is None and p.json_file is None: return
+
+        if p.json_file or env_var.endswith('.json'):
+            try:
+                fname = p.json_file if p.json_file else env_var
+                spec = json.load(open(os.path.abspath(fname), 'r'))
+            except:
+                warnobj.warning('Could not load JSON file %r' % spec)
+        else:
+            spec = json.loads(env_var)
+
+        if not isinstance(spec, dict):
+            warnobj.warning('JSON parameter specification must be a dictionary.')
+            return
+
+        if target in spec:
+            params = spec[target]
+        else:
+            params = spec
+
+        for name, value in params.items():
+           try:
+               parameterized.set_param(**{name:value})
+           except ValueError as e:
+               warnobj.warning(str(e))
