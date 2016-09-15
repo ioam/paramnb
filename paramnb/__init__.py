@@ -330,15 +330,13 @@ class EnvironmentInit(param.ParameterizedFunction):
     values based on environment variables encoding JSON.
 
     Here is an easy example of setting such an environment variable on
-    the commandline with validation:
+    the commandline:
 
+    PARAMNB_INIT='{"p1":5}' jupyter notebook
 
-    PARAMNB_INIT=`echo '{"example":{"p1":3}}' | python -mjson.tool` jupyter notebook
-
-    This addresses any EnvironmentInit instances inspecting an
-    environment variable with varname PARAMNB_INIT and target
-    'example'. The result is to set any parameter named 'p1' to the
-    value 3.
+    This addresses any EnvironmentInit instances that is inspecting the
+    default environment variable called PARAMNB_INIT in order to set the
+    'p1' parameter to 5.
     """
 
     varname = param.String(default='PARAMNB_INIT', doc="""
