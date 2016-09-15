@@ -334,9 +334,9 @@ class EnvironmentInit(param.ParameterizedFunction):
 
     PARAMNB_INIT='{"p1":5}' jupyter notebook
 
-    This addresses any EnvironmentInit instances that is inspecting the
-    default environment variable called PARAMNB_INIT in order to set the
-    'p1' parameter to 5.
+    This addresses any EnvironmentInit instances that are inspecting the
+    default environment variable called PARAMNB_INIT, instructing it to set
+    the 'p1' parameter to 5.
     """
 
     varname = param.String(default='PARAMNB_INIT', doc="""
