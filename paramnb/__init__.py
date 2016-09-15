@@ -167,8 +167,18 @@ class Widgets(param.ParameterizedFunction):
         to the top of the list, and other values above the default_precedence
         values can be used to sort or group parameters arbitrarily.""")
 
+    initializer = param.Callable(default=None, doc="""
+        User-supplied function that will be called on initialization,
+        usually to update the default Parameter values of the
+        underlying parameterized object.""")
+
     def __call__(self, parameterized, **params):
+
+
         self.p = param.ParamOverrides(self, params)
+        if self.p.initializer:
+            self.p.initializer(parameterized)
+
         self._widgets = {}
         self.parameterized = parameterized
 
