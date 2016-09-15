@@ -324,7 +324,7 @@ class Widgets(param.ParameterizedFunction):
         return widgets
 
 
-class EnvironmentInit(param.ParameterizedFunction):
+class JSONInit(param.ParameterizedFunction):
     """
     Callable that can be passed to Widgets.initializer to set Parameter
     values based on environment variables encoding JSON.
@@ -334,7 +334,7 @@ class EnvironmentInit(param.ParameterizedFunction):
 
     PARAMNB_INIT='{"p1":5}' jupyter notebook
 
-    This addresses any EnvironmentInit instances that are inspecting the
+    This addresses any JSONInit instances that are inspecting the
     default environment variable called PARAMNB_INIT, instructing it to set
     the 'p1' parameter to 5.
     """
