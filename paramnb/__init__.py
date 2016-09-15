@@ -7,8 +7,10 @@ from within a Jupyter/IPython notebook.
 """
 
 import sys
+import os
 import types
 import itertools
+import json
 
 from collections import OrderedDict
 
@@ -320,3 +322,33 @@ class Widgets(param.ParameterizedFunction):
             widgets.append(display_button)
 
         return widgets
+
+
+class EnvironmentInit(param.Parameterized):
+
+    varname = param.String(default='PARAMNB_INIT', doc="""
+        The name of the environment variable containing the JSON
+        specification.""")
+
+    target = param.String(default=None, doc="""
+        The key in the JSON specification dictionary containing the
+        desired parameter values.""")
+
+    def __init__(self, target, **params):
+        super(EnvironmentInit, self).__init__(**dict(params, target=target))
+
+    def __call__(self, parameterized):
+        env_var = os.environ.get(self.varname, None)
+        if env_var is None: return
+
+        spec = json.loads(env_var)
+        params = spec.get(self.target, {})
+
+        for name, value in params.items():
+           try:
+               parameterized.set_param(**{name:value})
+           except ValueError as e:
+               if isinstance(parameterized, type):
+                   param.main.warning(str(e))
+               else:
+                   parameterized.warning(str(e))
