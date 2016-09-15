@@ -351,23 +351,31 @@ class EnvironmentInit(param.ParameterizedFunction):
 
     def __call__(self, parameterized):
 
-        p = param.ParamOverrides(self, {})
+        warnobj = param.main if isinstance(parameterized, type) else parameterized
         param_class = (parameterized if isinstance(parameterized, type)
                        else parameterized.__class__)
+
+        p = param.ParamOverrides(self, {})
+        target = p.target if p.target is not None else param_class.__name__
+
         env_var = os.environ.get(p.varname, None)
         if env_var is None: return
 
         spec = json.loads(env_var)
-        if p.target is not None:
-            params = spec[p.target]
+        if not isinstance(spec, dict):
+            warnobj.warning('JSON parameter specification must be a dictionary.')
+            return
+
+        if target in spec:
+            params = spec[target]
         else:
-            params = spec[param_class.__name__]
+            params = spec
 
         for name, value in params.items():
            try:
                parameterized.set_param(**{name:value})
            except ValueError as e:
                if isinstance(parameterized, type):
-                   param.main.warning(str(e))
+                   warnobj.warning(str(e))
                else:
-                   parameterized.warning(str(e))
+                   warnobj.warning(str(e))
