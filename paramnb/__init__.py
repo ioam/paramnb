@@ -384,7 +384,4 @@ class EnvironmentInit(param.ParameterizedFunction):
            try:
                parameterized.set_param(**{name:value})
            except ValueError as e:
-               if isinstance(parameterized, type):
-                   warnobj.warning(str(e))
-               else:
-                   warnobj.warning(str(e))
+               warnobj.warning(str(e))
