@@ -155,7 +155,7 @@ class Widgets(param.ParameterizedFunction):
     tooltips = param.Boolean(default=True, doc="""
         Whether to add tooltips to the parameter names to show their
         docstrings.""")
-    
+
     show_labels = param.Boolean(default=True)
 
     display_threshold = param.Number(default=0,precedence=-10,doc="""
@@ -276,7 +276,7 @@ class Widgets(param.ParameterizedFunction):
         params = self.parameterized.params().items()
         key_fn = lambda x: x[1].precedence if x[1].precedence else self.p.default_precedence
         sorted_precedence = sorted(params, key=key_fn)
-        filtered = [(k,p) for (k,p) in sorted_precedence 
+        filtered = [(k,p) for (k,p) in sorted_precedence
                     if (p.precedence is None) or (p.precedence >= self.p.display_threshold)]
         groups = itertools.groupby(filtered, key=key_fn)
         sorted_groups = [sorted(grp) for (k,grp) in groups]
