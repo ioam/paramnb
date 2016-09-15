@@ -324,7 +324,7 @@ class Widgets(param.ParameterizedFunction):
         return widgets
 
 
-class EnvironmentInit(param.Parameterized):
+class EnvironmentInit(param.ParameterizedFunction):
     """
     Callable that can be passed to Widgets.initializer to set Parameter
     values based on environment variables encoding JSON.
@@ -346,18 +346,22 @@ class EnvironmentInit(param.Parameterized):
         specification.""")
 
     target = param.String(default=None, doc="""
-        The key in the JSON specification dictionary containing the
+        Optional key in the JSON specification dictionary containing the
         desired parameter values.""")
 
-    def __init__(self, target, **params):
-        super(EnvironmentInit, self).__init__(**dict(params, target=target))
-
     def __call__(self, parameterized):
-        env_var = os.environ.get(self.varname, None)
+
+        p = param.ParamOverrides(self, {})
+        param_class = (parameterized if isinstance(parameterized, type)
+                       else parameterized.__class__)
+        env_var = os.environ.get(p.varname, None)
         if env_var is None: return
 
         spec = json.loads(env_var)
-        params = spec.get(self.target, {})
+        if p.target is not None:
+            params = spec[p.target]
+        else:
+            params = spec[param_class.__name__]
 
         for name, value in params.items():
            try:
