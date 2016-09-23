@@ -324,7 +324,7 @@ class Widgets(param.ParameterizedFunction):
         return widgets
 
 
-class JSONInit(param.ParameterizedFunction):
+class JSONInit(param.Parameterized):
     """
     Callable that can be passed to Widgets.initializer to set Parameter
     values using JSON. There are three approaches that may be used:
@@ -354,21 +354,22 @@ class JSONInit(param.ParameterizedFunction):
     json_file = param.String(default=None, doc="""
         Optional path to a JSON file containing the parameter settings.""")
 
+
     def __call__(self, parameterized):
 
         warnobj = param.main if isinstance(parameterized, type) else parameterized
         param_class = (parameterized if isinstance(parameterized, type)
                        else parameterized.__class__)
 
-        p = param.ParamOverrides(self, {})
-        target = p.target if p.target is not None else param_class.__name__
 
-        env_var = os.environ.get(p.varname, None)
-        if env_var is None and p.json_file is None: return
+        target = self.target if self.target is not None else param_class.__name__
 
-        if p.json_file or env_var.endswith('.json'):
+        env_var = os.environ.get(self.varname, None)
+        if env_var is None and self.json_file is None: return
+
+        if self.json_file or env_var.endswith('.json'):
             try:
-                fname = p.json_file if p.json_file else env_var
+                fname = self.json_file if self.json_file else env_var
                 spec = json.load(open(os.path.abspath(fname), 'r'))
             except:
                 warnobj.warning('Could not load JSON file %r' % spec)
