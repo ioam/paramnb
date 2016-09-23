@@ -354,8 +354,6 @@ class JSONInit(param.Parameterized):
     json_file = param.String(default=None, doc="""
         Optional path to a JSON file containing the parameter settings.""")
 
-    def __init__(self, **params):
-        super(JSONInit, self).__init__(**params)
 
     def __call__(self, parameterized):
 
