@@ -2,10 +2,12 @@
 
 Generate ipywidgets from [Parameterized](https://github.com/ioam/param) objects in a Jupyter notebook.
 
-See the demo notebook in doc/index.ipynb for examples.  A static
-version of that notebook is available on 
-[Anaconda Cloud](https://anaconda.org/jbednar/paramnb), 
-but after looking at that it's best to try it out yourself!
+See the demo notebooks 
+[doc/index.ipynb](https://anaconda.org/jbednar/paramnb) and 
+[doc/JSONInit.ipynb](https://anaconda.org/jbednar/jsoninit)
+for examples.  Those links go to static version of the notebooks 
+hosted on Anaconda Cloud, but after looking at them it's best to try
+them out yourself interactively!
 
 You can easily install paramnb using conda:
 
