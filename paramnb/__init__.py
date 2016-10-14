@@ -174,6 +174,11 @@ class Widgets(param.ParameterizedFunction):
         usually to update the default Parameter values of the
         underlying parameterized object.""")
 
+    layout = param.ObjectSelector(default='column',
+                                  objects=['row','column'],doc="""
+        Whether to lay out the buttons as a row or a column.""")
+                                       
+    
     def __call__(self, parameterized, **params):
 
 
@@ -185,7 +190,7 @@ class Widgets(param.ParameterizedFunction):
         self.parameterized = parameterized
 
         widgets = self.widgets()
-        layout = ipywidgets.Layout(display='flex', flex_flow='row')
+        layout = ipywidgets.Layout(display='flex', flex_flow=self.p.layout)
         vbox = ipywidgets.VBox(children=widgets, layout=layout)
 
         display(vbox)
