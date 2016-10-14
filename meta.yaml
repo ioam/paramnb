@@ -1,6 +1,6 @@
 package:
   name: paramnb
-  version: 1.0.0
+  version: 1.0.2
 
 source:
   path: .
@@ -15,10 +15,10 @@ requirements:
     - python
     - setuptools
     - param >=1.4.1
-    - ipywidgets >=5.1.5
+    - ipywidgets >=5.2.2
   run:
     - python
-    - ipywidgets >=5.1.5
+    - ipywidgets >=5.2.2
     - param >=1.4.1
 
 test:

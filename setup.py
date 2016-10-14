@@ -12,7 +12,7 @@ install_requires = ['param>=1.4.1', 'ipywidgets>=5.1.5']
 
 setup_args.update(dict(
     name='paramnb',
-    version="1.0.1",
+    version="1.0.2",
     install_requires = install_requires,
     url = 'https://github.com/ioam/paramnb',
     description='Generate ipywidgets from Parameterized objects in the notebook',
