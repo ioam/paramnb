@@ -177,8 +177,12 @@ class Widgets(param.ParameterizedFunction):
     layout = param.ObjectSelector(default='column',
                                   objects=['row','column'],doc="""
         Whether to lay out the buttons as a row or a column.""")
-                                       
-    
+
+    display = param.Boolean(default=True, doc="""
+        Whether or not to display the widgets. Useful for batch running
+        notebooks.""")
+
+
     def __call__(self, parameterized, **params):
 
 
@@ -193,7 +197,8 @@ class Widgets(param.ParameterizedFunction):
         layout = ipywidgets.Layout(display='flex', flex_flow=self.p.layout)
         vbox = ipywidgets.VBox(children=widgets, layout=layout)
 
-        display(vbox)
+        if self.p.display:
+            display(vbox)
 
         if self.p.on_init:
             self.execute(None)
