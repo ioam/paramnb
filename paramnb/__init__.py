@@ -48,6 +48,12 @@ def TextWidget(*args, **kw):
     return ipywidgets.Text(*args,**kw)
 
 
+def HTMLWidget(*args, **kw):
+    """Forces a parameter value to be text, displayed as HTML"""
+    kw['value'] = str(kw['value'])
+    return ipywidgets.HTML(*args,**kw)
+
+
 def ActionButton(*args, **kw):
     """Returns a ipywidgets.Button executing a paramnb.Action."""
     kw['description'] = str(kw['name'])
@@ -70,7 +76,7 @@ ptype2wtype = {
 
 def wtype(pobj):
     if pobj.constant: # Ensure constant parameters cannot be edited
-        return ipywidgets.HTML
+        return HTMLWidget
     for t in classlist(type(pobj))[::-1]:
         if t in ptype2wtype:
             return ptype2wtype[t]
