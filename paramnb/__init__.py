@@ -5,14 +5,13 @@ Given a Parameterized object, displays a box with an ipywidget for each
 Parameter, allowing users to view and and manipulate Parameter values
 from within a Jupyter/IPython notebook.
 """
+from __future__ import absolute_import
 
 import sys
 import os
 import types
 import itertools
 import json
-
-from collections import OrderedDict
 
 from IPython import get_ipython
 from IPython.display import display, Javascript
@@ -22,12 +21,10 @@ import ipywidgets
 import param
 from param.parameterized import classlist
 
+from .util import named_objs
+
 __version__ = param.Version(release=(1,0,2), fpath=__file__,
                              commit="$Format:%h$", reponame='paramnb')
-
-if sys.version_info.major == 3:
-    unicode = str
-    basestring = str
 
 
 def FloatWidget(*args, **kw):
@@ -114,23 +111,6 @@ def estimate_label_width(labels):
     """
     max_length = max([len(l) for l in labels])
     return "{0}px".format(max(60,int(max_length*7.5)))
-
-
-def named_objs(objlist):
-    """
-    Given a list of objects, returns a dictionary mapping from
-    string name for the object to the object itself.
-    """
-    objs = OrderedDict()
-    for k, obj in objlist:
-        if hasattr(k, '__name__'):
-            k = k.__name__
-        elif sys.version_info < (3,0) and isinstance(k, basestring):
-            k = unicode(k.decode('utf-8'))
-        else:
-            k = unicode(k)
-        objs[k] = obj
-    return objs
 
 
 class Widgets(param.ParameterizedFunction):
