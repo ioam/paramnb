@@ -129,13 +129,9 @@ class CrossSelect(SelectMultiple):
         self._composite._ipython_display_(**kwargs)
     
     def get_state(self, key=None, drop_defaults=False):
-        """
-        HACK: Let's this composite widget pretend to be a regular widget
-        when included into a layout.
-        """
-        if key == 'value':
-            return {'value': self._lists[True].options}
-        elif key == '_options_labels':
+        # HACK: Let's this composite widget pretend to be a regular widget
+        # when included into a layout.
+        if key in ['value', '_options_labels']:
             return super(CrossSelect, self).get_state(key, drop_defaults)
         return self._composite.get_state(key, drop_defaults)
 
