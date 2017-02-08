@@ -21,6 +21,7 @@ import ipywidgets
 import param
 from param.parameterized import classlist
 
+from .widgets import CrossSelect
 from .util import named_objs
 
 __version__ = param.Version(release=(1,0,2), fpath=__file__,
@@ -51,6 +52,14 @@ def HTMLWidget(*args, **kw):
     return ipywidgets.HTML(*args,**kw)
 
 
+def ListSelectorWidget(*args, **kw):
+    """Forces a parameter value to be text, displayed as HTML"""
+    if len(kw['options']) > 20:
+        return CrossSelect(*args, **kw)
+    else:
+        return ipywidgets.SelectMultiple(*args, **kw)
+
+
 def ActionButton(*args, **kw):
     """Returns a ipywidgets.Button executing a paramnb.Action."""
     kw['description'] = str(kw['name'])
@@ -66,7 +75,7 @@ ptype2wtype = {
     param.Boolean:       ipywidgets.Checkbox,
     param.Number:        FloatWidget,
     param.Integer:       IntegerWidget,
-    param.ListSelector:  ipywidgets.SelectMultiple,
+    param.ListSelector:  ListSelectorWidget,
     param.Action:        ActionButton,
 }
 
