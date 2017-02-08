@@ -1,4 +1,4 @@
-import fnmatch
+import re
 
 import param
 from ipywidgets import SelectMultiple, Button, HBox, VBox, Layout, Text
@@ -92,7 +92,8 @@ class CrossSelect(SelectMultiple):
             self._lists[False].options = options
             self._lists[False].value = []
         else:
-            matches = fnmatch.filter(options, query+'*')
+            match = re.compile(query)
+            matches = filter(match.search, options)
             self._lists[False].options = matches if matches else ['']
             self._lists[False].value = matches
 
