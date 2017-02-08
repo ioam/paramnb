@@ -39,7 +39,7 @@ class CrossSelect(SelectMultiple):
         self._buttons[True].on_click(self._apply_selection)
 
         # Define search
-        self._search = Text()
+        self._search = Text(placeholder='Filter options')
         self._search.observe(self._filter_options, 'value')
 
         # Define Layout
