@@ -23,10 +23,8 @@ class CrossSelect(SelectMultiple):
         unselected = [k for k in options if k not in selected]
 
         # Define whitelist and blacklist
-        left_layout = Layout(min_width='0px')
-        right_layout = Layout(min_width='0px', margin='38px 0 0 10px')
-        self._lists = {False: SelectMultiple(options=unselected, layout=left_layout),
-                       True: SelectMultiple(options=selected, layout=right_layout)}
+        self._lists = {False: SelectMultiple(options=unselected),
+                       True: SelectMultiple(options=selected)}
 
         self._lists[False].observe(self._update_selection, 'value')
         self._lists[True].observe(self._update_selection, 'value')
@@ -43,11 +41,12 @@ class CrossSelect(SelectMultiple):
         self._search.observe(self._filter_options, 'value')
 
         # Define Layout
+        search_row = HBox([self._search])
         button_box = VBox([self._buttons[True], self._buttons[False]],
                           layout=Layout(margin='auto 0'))
-        self._composite = HBox([VBox([self._search, self._lists[False]]),
-                                button_box, self._lists[True]],
-                               layout=Layout(margin='0'))
+        tab_row = HBox([self._lists[False], button_box, self._lists[True]],
+                       layout=Layout(margin='0'))
+        self._composite = VBox([search_row, tab_row])
 
         self.observe(self._update_options, 'options')
         self.observe(self._update_value, 'value')
