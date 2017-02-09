@@ -69,7 +69,7 @@ class CrossSelect(SelectMultiple):
         for the whole widget are updated.
         """
         self._reverse_lookup = {v: k for k, v in event['new'].items()}
-        options = event['new'].keys() if isinstance(event, dict) else event['new']
+        options = list(event['new'].keys()) if isinstance(event, dict) else event['new']
         self._selected[False] = []
         self._selected[True] = []
         self._lists[True].options = ['']
