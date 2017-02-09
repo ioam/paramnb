@@ -52,12 +52,25 @@ def HTMLWidget(*args, **kw):
     return ipywidgets.HTML(*args,**kw)
 
 
-def ListSelectorWidget(*args, **kw):
-    """Forces a parameter value to be text, displayed as HTML"""
-    if len(kw['options']) > 20:
-        return CrossSelect(*args, **kw)
-    else:
-        return ipywidgets.SelectMultiple(*args, **kw)
+class ListSelectorWidget(param.ParameterizedFunction):
+    """
+    Selects the appropriate ListSelector widget depending on the number
+    of items.
+    """
+
+    item_limit = param.Integer(default=20, allow_None=True, doc="""
+        The number of items in the ListSelector before it switches from
+        a regular SelectMultiple widget to a two-pane CrossSelect widget.
+        Setting the limit to None will disable the CrossSelect widget
+        completely while a negative value will force it to be enabled.
+    """)
+
+    def __call__(self, *args, **kw):
+        item_limit = kw.pop('item_limit', self.item_limit)
+        if item_limit is not None and len(kw['options']) > item_limit:
+            return CrossSelect(*args, **kw)
+        else:
+            return ipywidgets.SelectMultiple(*args, **kw)
 
 
 def ActionButton(*args, **kw):
