@@ -5,6 +5,19 @@ if sys.version_info.major == 3:
     unicode = str
     basestring = str
 
+
+def as_unicode(obj):
+    """
+    Safely casts any object to unicode including regular string
+    (i.e. bytes) types in python 2.
+    """
+    if sys.version_info.major < 3 and isinstance(obj, str):
+        obj = unicode(obj.decode('utf-8'))
+    else:
+        obj = unicode(obj)
+    return obj
+
+
 def named_objs(objlist):
     """
     Given a list of objects, returns a dictionary mapping from
@@ -14,10 +27,7 @@ def named_objs(objlist):
     for k, obj in objlist:
         if hasattr(k, '__name__'):
             k = k.__name__
-        elif sys.version_info < (3,0) and isinstance(k, basestring) and not isinstance(k, unicode):
-            k = unicode(k.decode('utf-8'))
         else:
-            k = unicode(k)
+            k = as_unicode(k)
         objs[k] = obj
     return objs
-
