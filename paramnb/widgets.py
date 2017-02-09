@@ -8,7 +8,7 @@ from .util import named_objs
 
 class CrossSelect(SelectMultiple):
     """
-    CrossSelect provides a two-tab multi-selection widgets with fnmatch
+    CrossSelect provides a two-tab multi-selection widget with regex
     text filtering. Items can be transferred with buttons between the
     selected and unselected options.
     """
