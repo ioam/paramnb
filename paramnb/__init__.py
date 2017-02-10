@@ -250,7 +250,8 @@ class Widgets(param.ParameterizedFunction):
 
             path_w = ipywidgets.Text(value=p_obj.path)
             path_w.observe(path_change_event, 'value')
-            w = ipywidgets.VBox(children=[path_w,w])
+            w = ipywidgets.VBox(children=[path_w,w],
+                                layout=ipywidgets.Layout(margin='0'))
 
         return w
 
