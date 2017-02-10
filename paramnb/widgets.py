@@ -37,12 +37,15 @@ class CrossSelect(SelectMultiple):
         self._buttons[True].on_click(self._apply_selection)
 
         # Define search
-        self._search = Text(placeholder='Filter options')
-        self._search.observe(self._filter_options, 'value')
+        self._search = {False: Text(placeholder='Filter available options'),
+                        True: Text(placeholder='Filter selected options')}
+        self._search[False].observe(self._filter_options, 'value')
+        self._search[True].observe(self._filter_options, 'value')
 
         # Define Layout
         no_margin = Layout(margin='0')
-        search_row = HBox([self._search], layout=no_margin)
+        search_layout = Layout(margin='0', display='flex', justify_content='space-between')
+        search_row = HBox([self._search[False], self._search[True]], layout=search_layout)
         button_box = VBox([self._buttons[True], self._buttons[False]],
                           layout=Layout(margin='auto 0'))
         tab_row = HBox([self._lists[False], button_box, self._lists[True]],
@@ -53,7 +56,7 @@ class CrossSelect(SelectMultiple):
         self.observe(self._update_value, 'value')
 
         self._selected = {False: [], True: []}
-        self._query = ''
+        self._query = {False: '', True: ''}
         super(CrossSelect, self).__init__(*args, **dict(kwargs, options=options))
 
 
@@ -77,25 +80,33 @@ class CrossSelect(SelectMultiple):
         self._lists[True].value = []
         self._lists[False].options = options
         self._lists[False].value = []
-        self._filter_options()
+        self._apply_filters()
 
-    def _filter_options(self, event=None):
+    def _apply_filters(self):
+        self._filter_options({'owner': self._search[False]})
+        self._filter_options({'owner': self._search[True]})
+
+    def _filter_options(self, event):
         """
         Filters unselected options based on a text query event.
         """
-        query = self._query if event is None else event['new'] 
-        self._query = query
-        whitelist = self._lists[True].options
-        options = [o for o in self.options
-                   if o not in whitelist]
+        selected = event['owner'] is self._search[True]
+        query = self._query[selected] if 'new' not in event else event['new']
+        self._query[selected] = query
+        other = self._lists[not selected].options
+        options = [o for o in self.options if o not in other]
         if not query:
-            self._lists[False].options = options
-            self._lists[False].value = []
+            self._lists[selected].options = options
+            self._lists[selected].value = []
         else:
-            match = re.compile(query)
-            matches = filter(match.search, options)
-            self._lists[False].options = matches if matches else ['']
-            self._lists[False].value = matches
+            try:
+                match = re.compile(query)
+                matches = filter(match.search, options)
+                options = matches + [opt for opt in options if opt not in matches]
+            except:
+                matches = options
+            self._lists[selected].options = options if options else ['']
+            self._lists[selected].value = matches
 
     def _update_selection(self, event):
         """
@@ -113,14 +124,14 @@ class CrossSelect(SelectMultiple):
         new = self._selected[not selected]
         old = self._lists[selected].options
         other = self._lists[not selected].options
-        
+
         merged = sorted([v for v in list(old) + list(new) if v != ''])
         leftovers = sorted([o for o in other if o not in new and o != ''])
         new_values = merged if selected else leftovers
         self._lists[selected].options = merged if merged else ['']
         self._lists[not selected].options = leftovers if leftovers else ['']
         self.value = [self._options_dict[o] for o in self._lists[True].options if o != '']
-        self._filter_options()
+        self._apply_filters()
 
     def _ipython_display_(self, **kwargs):
         """
