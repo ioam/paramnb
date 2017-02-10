@@ -12,10 +12,8 @@ def as_unicode(obj):
     (i.e. bytes) types in python 2.
     """
     if sys.version_info.major < 3 and isinstance(obj, str):
-        obj = unicode(obj.decode('utf-8'))
-    else:
-        obj = unicode(obj)
-    return obj
+        obj = obj.decode('utf-8')
+    return unicode(obj)
 
 
 def named_objs(objlist):
