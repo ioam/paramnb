@@ -44,12 +44,14 @@ class CrossSelect(SelectMultiple):
 
         # Define Layout
         no_margin = Layout(margin='0')
-        search_layout = Layout(margin='0', display='flex', justify_content='space-between')
-        search_row = HBox([self._search[False], self._search[True]], layout=search_layout)
+        row_layout = Layout(margin='0', display='flex', justify_content='space-between')
+
+        search_row = HBox([self._search[False], self._search[True]])
+        search_row.layout = row_layout
         button_box = VBox([self._buttons[True], self._buttons[False]],
                           layout=Layout(margin='auto 0'))
-        tab_row = HBox([self._lists[False], button_box, self._lists[True]],
-                       layout=no_margin)
+        tab_row = HBox([self._lists[False], button_box, self._lists[True]])
+        tab_row.layout = row_layout
         self._composite = VBox([search_row, tab_row], layout=no_margin)
 
         self.observe(self._update_options, 'options')
