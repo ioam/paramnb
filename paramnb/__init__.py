@@ -5,14 +5,13 @@ Given a Parameterized object, displays a box with an ipywidget for each
 Parameter, allowing users to view and and manipulate Parameter values
 from within a Jupyter/IPython notebook.
 """
+from __future__ import absolute_import
 
 import sys
 import os
 import types
 import itertools
 import json
-
-from collections import OrderedDict
 
 from IPython import get_ipython
 from IPython.display import display, Javascript
@@ -22,12 +21,11 @@ import ipywidgets
 import param
 from param.parameterized import classlist
 
+from .widgets import CrossSelect
+from .util import named_objs
+
 __version__ = param.Version(release=(1,0,2), fpath=__file__,
                              commit="$Format:%h$", reponame='paramnb')
-
-if sys.version_info.major == 3:
-    unicode = str
-    basestring = str
 
 
 def FloatWidget(*args, **kw):
@@ -54,6 +52,27 @@ def HTMLWidget(*args, **kw):
     return ipywidgets.HTML(*args,**kw)
 
 
+class ListSelectorWidget(param.ParameterizedFunction):
+    """
+    Selects the appropriate ListSelector widget depending on the number
+    of items.
+    """
+
+    item_limit = param.Integer(default=20, allow_None=True, doc="""
+        The number of items in the ListSelector before it switches from
+        a regular SelectMultiple widget to a two-pane CrossSelect widget.
+        Setting the limit to None will disable the CrossSelect widget
+        completely while a negative value will force it to be enabled.
+    """)
+
+    def __call__(self, *args, **kw):
+        item_limit = kw.pop('item_limit', self.item_limit)
+        if item_limit is not None and len(kw['options']) > item_limit:
+            return CrossSelect(*args, **kw)
+        else:
+            return ipywidgets.SelectMultiple(*args, **kw)
+
+
 def ActionButton(*args, **kw):
     """Returns a ipywidgets.Button executing a paramnb.Action."""
     kw['description'] = str(kw['name'])
@@ -69,7 +88,7 @@ ptype2wtype = {
     param.Boolean:       ipywidgets.Checkbox,
     param.Number:        FloatWidget,
     param.Integer:       IntegerWidget,
-    param.ListSelector:  ipywidgets.SelectMultiple,
+    param.ListSelector:  ListSelectorWidget,
     param.Action:        ActionButton,
 }
 
@@ -114,23 +133,6 @@ def estimate_label_width(labels):
     """
     max_length = max([len(l) for l in labels])
     return "{0}px".format(max(60,int(max_length*7.5)))
-
-
-def named_objs(objlist):
-    """
-    Given a list of objects, returns a dictionary mapping from
-    string name for the object to the object itself.
-    """
-    objs = OrderedDict()
-    for k, obj in objlist:
-        if hasattr(k, '__name__'):
-            k = k.__name__
-        elif sys.version_info < (3,0) and isinstance(k, basestring):
-            k = unicode(k.decode('utf-8'))
-        else:
-            k = unicode(k)
-        objs[k] = obj
-    return objs
 
 
 class Widgets(param.ParameterizedFunction):
@@ -248,7 +250,8 @@ class Widgets(param.ParameterizedFunction):
 
             path_w = ipywidgets.Text(value=p_obj.path)
             path_w.observe(path_change_event, 'value')
-            w = ipywidgets.VBox(children=[path_w,w])
+            w = ipywidgets.VBox(children=[path_w,w],
+                                layout=ipywidgets.Layout(margin='0'))
 
         return w
 
@@ -280,6 +283,7 @@ class Widgets(param.ParameterizedFunction):
              z-index: 100; min-width: 100px; font-size: 80%}
           .ttip:hover .ttiptext { visibility: visible; }
           .widget-dropdown .dropdown-menu { width: 100% }
+          .widget-select-multiple select { min-height: 140px; min-width: 300px;}
         </style>
         """
 
