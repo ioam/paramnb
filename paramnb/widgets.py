@@ -103,7 +103,7 @@ class CrossSelect(SelectMultiple):
         else:
             try:
                 match = re.compile(query)
-                matches = filter(match.search, options)
+                matches = list(filter(match.search, options))
                 options = matches + [opt for opt in options if opt not in matches]
             except:
                 matches = options
