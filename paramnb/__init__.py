@@ -301,7 +301,7 @@ class Widgets(param.ParameterizedFunction):
         """Return name,widget boxes for all parameters (i.e., a property sheet)"""
 
         params = self.parameterized.params().items()
-        key_fn = lambda x: x[1].precedence if x[1].precedence else self.p.default_precedence
+        key_fn = lambda x: x[1].precedence if x[1].precedence is not None else self.p.default_precedence
         sorted_precedence = sorted(params, key=key_fn)
         filtered = [(k,p) for (k,p) in sorted_precedence
                     if (p.precedence is None) or (p.precedence >= self.p.display_threshold)]
