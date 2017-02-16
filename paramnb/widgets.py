@@ -1,7 +1,8 @@
 import re
 
 import param
-from ipywidgets import SelectMultiple, Button, HBox, VBox, Layout, Text
+from ipywidgets import SelectMultiple, Button, HBox, VBox, Layout, Text, HTML
+from traitlets import Unicode
 
 from .util import named_objs
 
@@ -148,3 +149,26 @@ class CrossSelect(SelectMultiple):
             return super(CrossSelect, self).get_state(key)
         return self._composite.get_state(key)
 
+
+
+HTMLVIEW_JS = """
+define('activehtml', ["jupyter-js-widgets"], function(widgets) {
+    var ActiveHTMLView = widgets.HTMLView.extend({
+        update: function() {
+            $(this.el).html(this.model.get('value'));
+        }
+    });
+    return {
+        ActiveHTMLView: ActiveHTMLView
+    };
+});
+"""
+
+class ActiveHTMLWidget(HTML):
+    _view_name = Unicode('ActiveHTMLView').tag(sync=True)
+    _view_module = Unicode('activehtml').tag(sync=True)
+    value = Unicode('').tag(sync=True)
+
+
+
+WIDGET_JS = ''.join([HTMLVIEW_JS])

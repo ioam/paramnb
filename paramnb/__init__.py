@@ -12,6 +12,7 @@ import os
 import types
 import itertools
 import json
+import functools
 
 from IPython import get_ipython
 from IPython.display import display, Javascript
@@ -21,7 +22,7 @@ import ipywidgets
 import param
 from param.parameterized import classlist
 
-from .widgets import CrossSelect
+from .widgets import CrossSelect, ActiveHTMLWidget, WIDGET_JS
 from .util import named_objs
 
 __version__ = param.Version(release=(1,0,2), fpath=__file__,
@@ -81,6 +82,57 @@ def ActionButton(*args, **kw):
     if value: w.on_click(value)
     return w
 
+
+class Output(param.Parameter):
+    """
+    Output parameters allow representing some output to be displayed.
+    Output parameters may have a callback, which is called when a new
+    value is set on the parameter. Additionally they should implement
+    a render method, which returns the data in a displayable format,
+    e.g. HTML.
+    """
+
+    __slots__ = ['callback']
+
+    def render(self, value):
+        return value
+
+    def __init__(self, default=None, callback=None,**kwargs):
+        self.callback = None
+        super(Output, self).__init__(default, **kwargs)
+
+    def __set__(self, obj, val):
+        super(Output, self).__set__(obj, val)
+        if self.callback:
+            self.callback(self.render(val))
+
+
+class HTMLOutput(Output, param.String):
+    """
+    HTMLOutput is an Output parameter mean specifically for HTML
+    output.
+    """
+
+
+class HoloViewsOutput(Output):
+    """
+    HoloViewsOutput is an Output parameter meant for displayable
+    HoloViews. The render method will render the HoloViews plot to
+    HTML.
+    """
+
+    def render(self, value):
+        import holoviews as hv
+        info = hv.ipython.display_hooks.process_object(value)
+        if info: return info
+        backend = hv.Store.current_backend
+        renderer = hv.Store.renderers[backend]
+        plot = renderer.get_plot(value)
+        plot.initialize_plot()
+        size = (plot.state.plot_width, plot.state.plot_height)
+        return renderer.html(plot), size
+
+
 # Maps from Parameter type to ipython widget types with any options desired
 ptype2wtype = {
     param.Parameter:     TextWidget,
@@ -90,6 +142,8 @@ ptype2wtype = {
     param.Integer:       IntegerWidget,
     param.ListSelector:  ListSelectorWidget,
     param.Action:        ActionButton,
+    HTMLOutput:          ActiveHTMLWidget,
+    HoloViewsOutput:     ActiveHTMLWidget
 }
 
 
@@ -201,10 +255,21 @@ class Widgets(param.ParameterizedFunction):
         layout = ipywidgets.Layout(display='flex', flex_flow=self.p.layout)
         vbox = ipywidgets.VBox(children=widgets, layout=layout)
 
+        display(Javascript(WIDGET_JS))
         display(vbox)
 
         if self.p.on_init:
             self.execute(None)
+
+    def _update_trait(self, p_name, p_value):
+        p_obj = self.parameterized.params(p_name)
+        widget = self._widgets[p_name]
+        if isinstance(p_value, tuple):
+            p_value, (width, height) = p_value
+            if width and height:
+                widget.layout.min_width = '%dpx' % width
+                widget.layout.min_height = '%dpx' % height
+        widget.value = p_value
 
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
@@ -212,6 +277,15 @@ class Widgets(param.ParameterizedFunction):
 
         kw = dict(value=getattr(self.parameterized, p_name), tooltip=p_obj.doc)
         kw['name'] = p_name
+
+        if hasattr(p_obj, 'callback') and kw['value'] is not None:
+            p_value = p_obj.render(kw['value'])
+            if isinstance(p_value, tuple):
+                p_value, (width, height) = p_value
+                if width and height:
+                    kw['layout'] = ipywidgets.Layout(min_width='%dpx'%width,
+                                                     min_height='%dpx'%height)
+            kw['value'] = p_value
 
         if hasattr(p_obj, 'get_range'):
             kw['options'] = named_objs(p_obj.get_range().items())
@@ -226,7 +300,11 @@ class Widgets(param.ParameterizedFunction):
             setattr(self.parameterized, p_name, new_values)
             if not self.p.button:
                 self.execute(None)
-        w.observe(change_event, 'value')
+
+        if hasattr(p_obj, 'callback'):
+            p_obj.callback = functools.partial(self._update_trait, p_name)
+        else:
+            w.observe(change_event, 'value')
 
         # Hack ; should be part of Widget classes
         if hasattr(p_obj,"path"):
