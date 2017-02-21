@@ -269,7 +269,7 @@ class Widgets(param.ParameterizedFunction):
         display(Javascript(WIDGET_JS))
         display(display_output)
 
-        if self.p.on_init:
+        if self.p.on_init or outputs:
             self.execute(None)
 
     def _update_trait(self, p_name, p_value):
