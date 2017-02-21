@@ -129,7 +129,7 @@ class HoloViewsOutput(Output):
         renderer = hv.Store.renderers[backend]
         plot = renderer.get_plot(value)
         plot.initialize_plot()
-        size = (plot.state.plot_width, plot.state.plot_height)
+        size = renderer.get_size(plot)
         return renderer.html(plot), size
 
 
@@ -196,6 +196,11 @@ class Widgets(param.ParameterizedFunction):
         (if `button`) else whenever a widget is changed,
         Should accept a Parameterized object argument.""")
 
+    output_position = param.ObjectSelector(default='below',
+                                           objects=['below', 'right', 'left', 'above'],
+                                           doc="""
+        Layout position of any display widgets.""")
+
     next_n = param.Parameter(default=0, doc="""
         When executing cells, integer number to execute (or 'all').
         A value of zero means not to control cell execution.""")
@@ -239,11 +244,8 @@ class Widgets(param.ParameterizedFunction):
     layout = param.ObjectSelector(default='column',
                                   objects=['row','column'],doc="""
         Whether to lay out the buttons as a row or a column.""")
-                                       
-    
+
     def __call__(self, parameterized, **params):
-
-
         self.p = param.ParamOverrides(self, params)
         if self.p.initializer:
             self.p.initializer(parameterized)
@@ -251,12 +253,21 @@ class Widgets(param.ParameterizedFunction):
         self._widgets = {}
         self.parameterized = parameterized
 
-        widgets = self.widgets()
+        widgets, outputs = self.widgets()
         layout = ipywidgets.Layout(display='flex', flex_flow=self.p.layout)
-        vbox = ipywidgets.VBox(children=widgets, layout=layout)
+        display_output = ipywidgets.VBox(children=widgets, layout=layout)
+        if outputs:
+            output = ipywidgets.VBox(children=outputs, layout=layout)
+            layout = self.p.output_position
+            if layout in ['below', 'right']:
+                children = [display_output, output]
+            else:
+                children = [output, display_output]
+            box = ipywidgets.VBox if layout in ['below', 'above'] else ipywidgets.HBox
+            display_output = box(children=children)
 
         display(Javascript(WIDGET_JS))
-        display(vbox)
+        display(display_output)
 
         if self.p.on_init:
             self.execute(None)
@@ -381,8 +392,10 @@ class Widgets(param.ParameterizedFunction):
         params = self.parameterized.params().items()
         key_fn = lambda x: x[1].precedence if x[1].precedence is not None else self.p.default_precedence
         sorted_precedence = sorted(params, key=key_fn)
+        outputs = [k for k, p in sorted_precedence if isinstance(p, Output)]
         filtered = [(k,p) for (k,p) in sorted_precedence
-                    if (p.precedence is None) or (p.precedence >= self.p.display_threshold)]
+                    if ((p.precedence is None) or (p.precedence >= self.p.display_threshold))
+                    and k not in outputs]
         groups = itertools.groupby(filtered, key=key_fn)
         sorted_groups = [sorted(grp) for (k,grp) in groups]
         ordered_params = [el[0] for group in sorted_groups for el in group]
@@ -414,7 +427,8 @@ class Widgets(param.ParameterizedFunction):
             display_button.on_click(self.execute)
             widgets.append(display_button)
 
-        return widgets
+        outputs = [self.widget(pname) for pname in outputs]
+        return widgets, outputs
 
 
 class JSONInit(param.Parameterized):
