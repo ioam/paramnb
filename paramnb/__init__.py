@@ -20,139 +20,14 @@ from IPython.display import display, Javascript
 import ipywidgets
 
 import param
-from param.parameterized import classlist
 
-from .widgets import CrossSelect, ActiveHTMLWidget, WIDGET_JS
+from . import view
+from .widgets import wtype, WIDGET_JS
 from .util import named_objs
+from .view import _View
 
 __version__ = param.Version(release=(1,0,2), fpath=__file__,
                              commit="$Format:%h$", reponame='paramnb')
-
-
-def FloatWidget(*args, **kw):
-    """Returns appropriate slider or text boxes depending on bounds"""
-    has_bounds = not (kw['min'] is None or kw['max'] is None)
-    return (ipywidgets.FloatSlider if has_bounds else ipywidgets.FloatText)(*args,**kw)
-
-
-def IntegerWidget(*args, **kw):
-    """Returns appropriate slider or text boxes depending on bounds"""
-    has_bounds = not (kw['min'] is None or kw['max'] is None)
-    return (ipywidgets.IntSlider if has_bounds else ipywidgets.IntText)(*args,**kw)
-
-
-def TextWidget(*args, **kw):
-    """Forces a parameter value to be text"""
-    kw['value'] = str(kw['value'])
-    return ipywidgets.Text(*args,**kw)
-
-
-def HTMLWidget(*args, **kw):
-    """Forces a parameter value to be text, displayed as HTML"""
-    kw['value'] = str(kw['value'])
-    return ipywidgets.HTML(*args,**kw)
-
-
-class ListSelectorWidget(param.ParameterizedFunction):
-    """
-    Selects the appropriate ListSelector widget depending on the number
-    of items.
-    """
-
-    item_limit = param.Integer(default=20, allow_None=True, doc="""
-        The number of items in the ListSelector before it switches from
-        a regular SelectMultiple widget to a two-pane CrossSelect widget.
-        Setting the limit to None will disable the CrossSelect widget
-        completely while a negative value will force it to be enabled.
-    """)
-
-    def __call__(self, *args, **kw):
-        item_limit = kw.pop('item_limit', self.item_limit)
-        if item_limit is not None and len(kw['options']) > item_limit:
-            return CrossSelect(*args, **kw)
-        else:
-            return ipywidgets.SelectMultiple(*args, **kw)
-
-
-def ActionButton(*args, **kw):
-    """Returns a ipywidgets.Button executing a paramnb.Action."""
-    kw['description'] = str(kw['name'])
-    value = kw["value"]
-    w = ipywidgets.Button(*args,**kw)
-    if value: w.on_click(value)
-    return w
-
-
-class Output(param.Parameter):
-    """
-    Output parameters allow representing some output to be displayed.
-    Output parameters may have a callback, which is called when a new
-    value is set on the parameter. Additionally they should implement
-    a render method, which returns the data in a displayable format,
-    e.g. HTML.
-    """
-
-    __slots__ = ['callback']
-
-    def render(self, value):
-        return value
-
-    def __init__(self, default=None, callback=None,**kwargs):
-        self.callback = None
-        super(Output, self).__init__(default, **kwargs)
-
-    def __set__(self, obj, val):
-        super(Output, self).__set__(obj, val)
-        if self.callback:
-            self.callback(self.render(val))
-
-
-class HTMLOutput(Output, param.String):
-    """
-    HTMLOutput is an Output parameter mean specifically for HTML
-    output.
-    """
-
-
-class HoloViewsOutput(Output):
-    """
-    HoloViewsOutput is an Output parameter meant for displayable
-    HoloViews. The render method will render the HoloViews plot to
-    HTML.
-    """
-
-    def render(self, value):
-        import holoviews as hv
-        info = hv.ipython.display_hooks.process_object(value)
-        if info: return info
-        backend = hv.Store.current_backend
-        renderer = hv.Store.renderers[backend]
-        plot = renderer.get_plot(value)
-        plot.initialize_plot()
-        size = renderer.get_size(plot)
-        return renderer.html(plot), size
-
-
-# Maps from Parameter type to ipython widget types with any options desired
-ptype2wtype = {
-    param.Parameter:     TextWidget,
-    param.Selector:      ipywidgets.Dropdown,
-    param.Boolean:       ipywidgets.Checkbox,
-    param.Number:        FloatWidget,
-    param.Integer:       IntegerWidget,
-    param.ListSelector:  ListSelectorWidget,
-    param.Action:        ActionButton,
-    HTMLOutput:          ActiveHTMLWidget,
-    HoloViewsOutput:     ActiveHTMLWidget
-}
-
-
-def wtype(pobj):
-    if pobj.constant: # Ensure constant parameters cannot be edited
-        return HTMLWidget
-    for t in classlist(type(pobj))[::-1]:
-        if t in ptype2wtype:
-            return ptype2wtype[t]
 
 
 def run_next_cells(n):
@@ -196,10 +71,10 @@ class Widgets(param.ParameterizedFunction):
         (if `button`) else whenever a widget is changed,
         Should accept a Parameterized object argument.""")
 
-    output_position = param.ObjectSelector(default='below',
-                                           objects=['below', 'right', 'left', 'above'],
-                                           doc="""
-        Layout position of any display widgets.""")
+    view_position = param.ObjectSelector(default='below',
+                                         objects=['below', 'right', 'left', 'above'],
+                                         doc="""
+        Layout position of any View parameter widgets.""")
 
     next_n = param.Parameter(default=0, doc="""
         When executing cells, integer number to execute (or 'all').
@@ -253,23 +128,23 @@ class Widgets(param.ParameterizedFunction):
         self._widgets = {}
         self.parameterized = parameterized
 
-        widgets, outputs = self.widgets()
+        widgets, views = self.widgets()
         layout = ipywidgets.Layout(display='flex', flex_flow=self.p.layout)
-        display_output = ipywidgets.VBox(children=widgets, layout=layout)
-        if outputs:
-            output = ipywidgets.VBox(children=outputs, layout=layout)
-            layout = self.p.output_position
+        widget_box = ipywidgets.VBox(children=widgets, layout=layout)
+        if views:
+            view_box = ipywidgets.VBox(children=views, layout=layout)
+            layout = self.p.view_position
             if layout in ['below', 'right']:
-                children = [display_output, output]
+                children = [widget_box, view_box]
             else:
-                children = [output, display_output]
+                children = [view_box, widget_box]
             box = ipywidgets.VBox if layout in ['below', 'above'] else ipywidgets.HBox
-            display_output = box(children=children)
+            widget_box = box(children=children)
 
         display(Javascript(WIDGET_JS))
-        display(display_output)
+        display(widget_box)
 
-        if self.p.on_init or outputs:
+        if self.p.on_init or views:
             self.execute(None)
 
     def _update_trait(self, p_name, p_value):
@@ -392,7 +267,7 @@ class Widgets(param.ParameterizedFunction):
         params = self.parameterized.params().items()
         key_fn = lambda x: x[1].precedence if x[1].precedence is not None else self.p.default_precedence
         sorted_precedence = sorted(params, key=key_fn)
-        outputs = [k for k, p in sorted_precedence if isinstance(p, Output)]
+        outputs = [k for k, p in sorted_precedence if isinstance(p, _View)]
         filtered = [(k,p) for (k,p) in sorted_precedence
                     if ((p.precedence is None) or (p.precedence >= self.p.display_threshold))
                     and k not in outputs]

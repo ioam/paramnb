@@ -1,10 +1,70 @@
 import re
 
 import param
-from ipywidgets import SelectMultiple, Button, HBox, VBox, Layout, Text, HTML
+from param.parameterized import classlist
+
+import ipywidgets
+from ipywidgets import (SelectMultiple, Button, HBox, VBox, Layout,
+                        Text, HTML, FloatSlider, FloatText, IntText,
+                        IntSlider, SelectMultiple)
 from traitlets import Unicode
 
 from .util import named_objs
+from .view import HTML as HTMLView, HView
+
+
+def FloatWidget(*args, **kw):
+    """Returns appropriate slider or text boxes depending on bounds"""
+    has_bounds = not (kw['min'] is None or kw['max'] is None)
+    return (FloatSlider if has_bounds else FloatText)(*args,**kw)
+
+
+def IntegerWidget(*args, **kw):
+    """Returns appropriate slider or text boxes depending on bounds"""
+    has_bounds = not (kw['min'] is None or kw['max'] is None)
+    return (IntSlider if has_bounds else IntText)(*args,**kw)
+
+
+def TextWidget(*args, **kw):
+    """Forces a parameter value to be text"""
+    kw['value'] = str(kw['value'])
+    return Text(*args,**kw)
+
+
+def HTMLWidget(*args, **kw):
+    """Forces a parameter value to be text, displayed as HTML"""
+    kw['value'] = str(kw['value'])
+    return HTML(*args,**kw)
+
+
+class ListSelectorWidget(param.ParameterizedFunction):
+    """
+    Selects the appropriate ListSelector widget depending on the number
+    of items.
+    """
+
+    item_limit = param.Integer(default=20, allow_None=True, doc="""
+        The number of items in the ListSelector before it switches from
+        a regular SelectMultiple widget to a two-pane CrossSelect widget.
+        Setting the limit to None will disable the CrossSelect widget
+        completely while a negative value will force it to be enabled.
+    """)
+
+    def __call__(self, *args, **kw):
+        item_limit = kw.pop('item_limit', self.item_limit)
+        if item_limit is not None and len(kw['options']) > item_limit:
+            return CrossSelect(*args, **kw)
+        else:
+            return SelectMultiple(*args, **kw)
+
+
+def ActionButton(*args, **kw):
+    """Returns a ipywidgets.Button executing a paramnb.Action."""
+    kw['description'] = str(kw['name'])
+    value = kw["value"]
+    w = ipywidgets.Button(*args,**kw)
+    if value: w.on_click(value)
+    return w
 
 
 class CrossSelect(SelectMultiple):
@@ -150,7 +210,6 @@ class CrossSelect(SelectMultiple):
         return self._composite.get_state(key)
 
 
-
 HTMLVIEW_JS = """
 define('activehtml', ["jupyter-js-widgets"], function(widgets) {
     var ActiveHTMLView = widgets.HTMLView.extend({
@@ -170,5 +229,25 @@ class ActiveHTMLWidget(HTML):
     value = Unicode('').tag(sync=True)
 
 
-
+# Combine all widget JS code into on variable
 WIDGET_JS = ''.join([HTMLVIEW_JS])
+
+# Maps from Parameter type to ipython widget types with any options desired
+ptype2wtype = {
+    param.Parameter:     TextWidget,
+    param.Selector:      ipywidgets.Dropdown,
+    param.Boolean:       ipywidgets.Checkbox,
+    param.Number:        FloatWidget,
+    param.Integer:       IntegerWidget,
+    param.ListSelector:  ListSelectorWidget,
+    param.Action:        ActionButton,
+    HTMLView:            ActiveHTMLWidget,
+    HView:               ActiveHTMLWidget
+}
+
+def wtype(pobj):
+    if pobj.constant: # Ensure constant parameters cannot be edited
+        return HTMLWidget
+    for t in classlist(type(pobj))[::-1]:
+        if t in ptype2wtype:
+            return ptype2wtype[t]
