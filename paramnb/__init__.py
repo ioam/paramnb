@@ -247,7 +247,7 @@ class Widgets(param.ParameterizedFunction):
              z-index: 100; min-width: 100px; font-size: 80%}
           .ttip:hover .ttiptext { visibility: visible; }
           .widget-dropdown .dropdown-menu { width: 100% }
-          .widget-select-multiple select { min-height: 140px; min-width: 300px;}
+          .widget-select-multiple select { min-height: 100px; min-width: 300px;}
         </style>
         """
 
