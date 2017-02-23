@@ -23,7 +23,7 @@ import param
 
 from . import view
 from .widgets import wtype, WIDGET_JS
-from .util import named_objs
+from .util import named_objs, get_method_owner
 from .view import _View
 
 __version__ = param.Version(release=(1,0,2), fpath=__file__,
@@ -145,7 +145,7 @@ class Widgets(param.ParameterizedFunction):
         display(widget_box)
 
         if self.p.on_init or views:
-            self.execute(None)
+            self.execute()
 
 
     def _update_trait(self, p_name, p_value, widget=None):
@@ -187,7 +187,7 @@ class Widgets(param.ParameterizedFunction):
             new_values = event['new']
             setattr(self.parameterized, p_name, new_values)
             if not self.p.button:
-                self.execute(None)
+                self.execute({p_name: new_values})
 
         if hasattr(p_obj, 'callback'):
             p_obj.callback = functools.partial(self._update_trait, p_name)
@@ -229,15 +229,14 @@ class Widgets(param.ParameterizedFunction):
         return self._widgets[param_name]
 
 
-    def execute(self, event):
+    def execute(self, changed={}):
         run_next_cells(self.p.next_n)
         if self.p.callback is not None:
-
-            if (sys.version_info < (3,0) and isinstance(self.p.callback, types.UnboundMethodType)
-                and  self.p.callback.im_self is self.parameterized):
-               self.p.callback()
+            if get_method_owner(self.p.callback) is self.parameterized:
+               self.p.callback(**changed)
             else:
-                self.p.callback(self.parameterized)
+                self.p.callback(self.parameterized, **changed)
+
 
     # Define tooltips, other settings
     preamble = """
