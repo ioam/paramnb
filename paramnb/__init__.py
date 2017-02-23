@@ -166,7 +166,13 @@ class Widgets(param.ParameterizedFunction):
         p_obj = self.parameterized.params(p_name)
         widget_class = wtype(p_obj)
 
-        kw = dict(value=getattr(self.parameterized, p_name), tooltip=p_obj.doc)
+        value = getattr(self.parameterized, p_name)
+        kw = dict(tooltip=p_obj.doc, value=value)
+        if isinstance(p_obj, param.Action):
+            def action_cb(button):
+                value(self.parameterized)
+            kw['value'] = action_cb
+
         kw['name'] = p_name
 
         if hasattr(p_obj, 'callback'):
