@@ -2,46 +2,34 @@ import param
 
 class _View(param.Parameter):
     """
-    Output parameters allow representing some output to be displayed.
-    Output parameters may have a callback, which is called when a new
-    value is set on the parameter. Additionally they should implement
-    a render method, which returns the data in a displayable format,
-    e.g. HTML.
+    View parameters hold displayable output, they may have a callback,
+    which is called when a new value is set on the parameter.
+    Additionally they allow supplying a renderer function which renders
+    the display output. The renderer function should return the
+    appropriate output for the View parameter (e.g. HTML or PNG data),
+    and may optionally supply the desired size of the viewport.
     """
 
-    __slots__ = ['callback']
+    __slots__ = ['callback', 'renderer']
 
-    def render(self, value):
-        return value
-
-    def __init__(self, default=None, callback=None,**kwargs):
+    def __init__(self, default=None, callback=None, renderer=None, **kwargs):
         self.callback = None
+        self.renderer = (lambda x: x) if renderer is None else renderer
         super(_View, self).__init__(default, **kwargs)
 
     def __set__(self, obj, val):
         super(_View, self).__set__(obj, val)
         if self.callback:
-            self.callback(self.render(val))
+            self.callback(self.renderer(val))
 
 
-class HTML(_View, param.String):
+class HTML(_View):
     """
     HTML is a View parameter that allows displaying HTML output.
     """
 
 
-class HView(_View):
+class Image(_View):
     """
-    HView is an View parameter meant for displaying HoloViews objects.
-    In combination with HoloViews streams this parameter may be used
-    to build complex dashboards.
+    Image is a View parameter that allows displaying PNG bytestrings.
     """
-
-    def render(self, value):
-        import holoviews as hv
-        backend = hv.Store.current_backend
-        renderer = hv.Store.renderers[backend]
-        plot = renderer.get_plot(value)
-        plot.initialize_plot()
-        size = renderer.get_size(plot)
-        return renderer.html(plot), size

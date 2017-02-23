@@ -147,15 +147,20 @@ class Widgets(param.ParameterizedFunction):
         if self.p.on_init or views:
             self.execute(None)
 
-    def _update_trait(self, p_name, p_value):
+
+    def _update_trait(self, p_name, p_value, widget=None):
         p_obj = self.parameterized.params(p_name)
-        widget = self._widgets[p_name]
+        widget = self._widgets[p_name] if widget is None else widget
         if isinstance(p_value, tuple):
-            p_value, (width, height) = p_value
-            if width and height:
-                widget.layout.min_width = '%dpx' % width
-                widget.layout.min_height = '%dpx' % height
+            p_value, size = p_value
+            if isinstance(widget, ipywidgets.Image):
+                widget.width = size[0]
+                widget.height = size[1]
+            elif isinstance(size, tuple) and len(size) == 2:
+                widget.layout.min_width = '%dpx' % size[0]
+                widget.layout.min_height = '%dpx' % size[1]
         widget.value = p_value
+
 
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
@@ -164,14 +169,8 @@ class Widgets(param.ParameterizedFunction):
         kw = dict(value=getattr(self.parameterized, p_name), tooltip=p_obj.doc)
         kw['name'] = p_name
 
-        if hasattr(p_obj, 'callback') and kw['value'] is not None:
-            p_value = p_obj.render(kw['value'])
-            if isinstance(p_value, tuple):
-                p_value, (width, height) = p_value
-                if width and height:
-                    kw['layout'] = ipywidgets.Layout(min_width='%dpx'%width,
-                                                     min_height='%dpx'%height)
-            kw['value'] = p_value
+        if hasattr(p_obj, 'callback'):
+            kw.pop('value', None)
 
         if hasattr(p_obj, 'get_range'):
             kw['options'] = named_objs(p_obj.get_range().items())
@@ -180,6 +179,9 @@ class Widgets(param.ParameterizedFunction):
             kw['min'], kw['max'] = p_obj.get_soft_bounds()
 
         w = widget_class(**kw)
+
+        if hasattr(p_obj, 'callback') and value is not None:
+            self._update_trait(p_name, value, w)
 
         def change_event(event):
             new_values = event['new']

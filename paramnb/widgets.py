@@ -6,11 +6,11 @@ from param.parameterized import classlist
 import ipywidgets
 from ipywidgets import (SelectMultiple, Button, HBox, VBox, Layout,
                         Text, HTML, FloatSlider, FloatText, IntText,
-                        IntSlider, SelectMultiple)
+                        IntSlider, SelectMultiple, Image)
 from traitlets import Unicode
 
 from .util import named_objs
-from .view import HTML as HTMLView, HView
+from .view import HTML as HTMLView, Image as ImageView
 
 
 def FloatWidget(*args, **kw):
@@ -242,7 +242,7 @@ ptype2wtype = {
     param.ListSelector:  ListSelectorWidget,
     param.Action:        ActionButton,
     HTMLView:            ActiveHTMLWidget,
-    HView:               ActiveHTMLWidget
+    ImageView:           Image
 }
 
 def wtype(pobj):
