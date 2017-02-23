@@ -12,6 +12,7 @@ import os
 import types
 import itertools
 import json
+import functools
 
 from IPython import get_ipython
 from IPython.display import display, Javascript
@@ -19,86 +20,14 @@ from IPython.display import display, Javascript
 import ipywidgets
 
 import param
-from param.parameterized import classlist
 
-from .widgets import CrossSelect
+from . import view
+from .widgets import wtype, WIDGET_JS
 from .util import named_objs
+from .view import _View
 
 __version__ = param.Version(release=(1,0,2), fpath=__file__,
                              commit="$Format:%h$", reponame='paramnb')
-
-
-def FloatWidget(*args, **kw):
-    """Returns appropriate slider or text boxes depending on bounds"""
-    has_bounds = not (kw['min'] is None or kw['max'] is None)
-    return (ipywidgets.FloatSlider if has_bounds else ipywidgets.FloatText)(*args,**kw)
-
-
-def IntegerWidget(*args, **kw):
-    """Returns appropriate slider or text boxes depending on bounds"""
-    has_bounds = not (kw['min'] is None or kw['max'] is None)
-    return (ipywidgets.IntSlider if has_bounds else ipywidgets.IntText)(*args,**kw)
-
-
-def TextWidget(*args, **kw):
-    """Forces a parameter value to be text"""
-    kw['value'] = str(kw['value'])
-    return ipywidgets.Text(*args,**kw)
-
-
-def HTMLWidget(*args, **kw):
-    """Forces a parameter value to be text, displayed as HTML"""
-    kw['value'] = str(kw['value'])
-    return ipywidgets.HTML(*args,**kw)
-
-
-class ListSelectorWidget(param.ParameterizedFunction):
-    """
-    Selects the appropriate ListSelector widget depending on the number
-    of items.
-    """
-
-    item_limit = param.Integer(default=20, allow_None=True, doc="""
-        The number of items in the ListSelector before it switches from
-        a regular SelectMultiple widget to a two-pane CrossSelect widget.
-        Setting the limit to None will disable the CrossSelect widget
-        completely while a negative value will force it to be enabled.
-    """)
-
-    def __call__(self, *args, **kw):
-        item_limit = kw.pop('item_limit', self.item_limit)
-        if item_limit is not None and len(kw['options']) > item_limit:
-            return CrossSelect(*args, **kw)
-        else:
-            return ipywidgets.SelectMultiple(*args, **kw)
-
-
-def ActionButton(*args, **kw):
-    """Returns a ipywidgets.Button executing a paramnb.Action."""
-    kw['description'] = str(kw['name'])
-    value = kw["value"]
-    w = ipywidgets.Button(*args,**kw)
-    if value: w.on_click(value)
-    return w
-
-# Maps from Parameter type to ipython widget types with any options desired
-ptype2wtype = {
-    param.Parameter:     TextWidget,
-    param.Selector:      ipywidgets.Dropdown,
-    param.Boolean:       ipywidgets.Checkbox,
-    param.Number:        FloatWidget,
-    param.Integer:       IntegerWidget,
-    param.ListSelector:  ListSelectorWidget,
-    param.Action:        ActionButton,
-}
-
-
-def wtype(pobj):
-    if pobj.constant: # Ensure constant parameters cannot be edited
-        return HTMLWidget
-    for t in classlist(type(pobj))[::-1]:
-        if t in ptype2wtype:
-            return ptype2wtype[t]
 
 
 def run_next_cells(n):
@@ -141,6 +70,11 @@ class Widgets(param.ParameterizedFunction):
         Custom callable to execute on button press
         (if `button`) else whenever a widget is changed,
         Should accept a Parameterized object argument.""")
+
+    view_position = param.ObjectSelector(default='below',
+                                         objects=['below', 'right', 'left', 'above'],
+                                         doc="""
+        Layout position of any View parameter widgets.""")
 
     next_n = param.Parameter(default=0, doc="""
         When executing cells, integer number to execute (or 'all').
@@ -185,11 +119,8 @@ class Widgets(param.ParameterizedFunction):
     layout = param.ObjectSelector(default='column',
                                   objects=['row','column'],doc="""
         Whether to lay out the buttons as a row or a column.""")
-                                       
-    
+
     def __call__(self, parameterized, **params):
-
-
         self.p = param.ParamOverrides(self, params)
         if self.p.initializer:
             self.p.initializer(parameterized)
@@ -197,14 +128,39 @@ class Widgets(param.ParameterizedFunction):
         self._widgets = {}
         self.parameterized = parameterized
 
-        widgets = self.widgets()
+        widgets, views = self.widgets()
         layout = ipywidgets.Layout(display='flex', flex_flow=self.p.layout)
-        vbox = ipywidgets.VBox(children=widgets, layout=layout)
+        widget_box = ipywidgets.VBox(children=widgets, layout=layout)
+        if views:
+            view_box = ipywidgets.VBox(children=views, layout=layout)
+            layout = self.p.view_position
+            if layout in ['below', 'right']:
+                children = [widget_box, view_box]
+            else:
+                children = [view_box, widget_box]
+            box = ipywidgets.VBox if layout in ['below', 'above'] else ipywidgets.HBox
+            widget_box = box(children=children)
 
-        display(vbox)
+        display(Javascript(WIDGET_JS))
+        display(widget_box)
 
-        if self.p.on_init:
+        if self.p.on_init or views:
             self.execute(None)
+
+
+    def _update_trait(self, p_name, p_value, widget=None):
+        p_obj = self.parameterized.params(p_name)
+        widget = self._widgets[p_name] if widget is None else widget
+        if isinstance(p_value, tuple):
+            p_value, size = p_value
+            if isinstance(widget, ipywidgets.Image):
+                widget.width = size[0]
+                widget.height = size[1]
+            elif isinstance(size, tuple) and len(size) == 2:
+                widget.layout.min_width = '%dpx' % size[0]
+                widget.layout.min_height = '%dpx' % size[1]
+        widget.value = p_value
+
 
     def _make_widget(self, p_name):
         p_obj = self.parameterized.params(p_name)
@@ -212,6 +168,9 @@ class Widgets(param.ParameterizedFunction):
 
         kw = dict(value=getattr(self.parameterized, p_name), tooltip=p_obj.doc)
         kw['name'] = p_name
+
+        if hasattr(p_obj, 'callback'):
+            kw.pop('value', None)
 
         if hasattr(p_obj, 'get_range'):
             kw['options'] = named_objs(p_obj.get_range().items())
@@ -221,12 +180,19 @@ class Widgets(param.ParameterizedFunction):
 
         w = widget_class(**kw)
 
+        if hasattr(p_obj, 'callback') and value is not None:
+            self._update_trait(p_name, value, w)
+
         def change_event(event):
             new_values = event['new']
             setattr(self.parameterized, p_name, new_values)
             if not self.p.button:
                 self.execute(None)
-        w.observe(change_event, 'value')
+
+        if hasattr(p_obj, 'callback'):
+            p_obj.callback = functools.partial(self._update_trait, p_name)
+        else:
+            w.observe(change_event, 'value')
 
         # Hack ; should be part of Widget classes
         if hasattr(p_obj,"path"):
@@ -283,7 +249,7 @@ class Widgets(param.ParameterizedFunction):
              z-index: 100; min-width: 100px; font-size: 80%}
           .ttip:hover .ttiptext { visibility: visible; }
           .widget-dropdown .dropdown-menu { width: 100% }
-          .widget-select-multiple select { min-height: 140px; min-width: 300px;}
+          .widget-select-multiple select { min-height: 100px; min-width: 300px;}
         </style>
         """
 
@@ -303,8 +269,10 @@ class Widgets(param.ParameterizedFunction):
         params = self.parameterized.params().items()
         key_fn = lambda x: x[1].precedence if x[1].precedence is not None else self.p.default_precedence
         sorted_precedence = sorted(params, key=key_fn)
+        outputs = [k for k, p in sorted_precedence if isinstance(p, _View)]
         filtered = [(k,p) for (k,p) in sorted_precedence
-                    if (p.precedence is None) or (p.precedence >= self.p.display_threshold)]
+                    if ((p.precedence is None) or (p.precedence >= self.p.display_threshold))
+                    and k not in outputs]
         groups = itertools.groupby(filtered, key=key_fn)
         sorted_groups = [sorted(grp) for (k,grp) in groups]
         ordered_params = [el[0] for group in sorted_groups for el in group]
@@ -336,7 +304,8 @@ class Widgets(param.ParameterizedFunction):
             display_button.on_click(self.execute)
             widgets.append(display_button)
 
-        return widgets
+        outputs = [self.widget(pname) for pname in outputs]
+        return widgets, outputs
 
 
 class JSONInit(param.Parameterized):
