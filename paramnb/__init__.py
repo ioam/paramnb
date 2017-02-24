@@ -144,7 +144,13 @@ class Widgets(param.ParameterizedFunction):
         display(Javascript(WIDGET_JS))
         display(widget_box)
 
-        if self.p.on_init or views:
+        for view in views:
+            p_obj = self.parameterized.params(view.name)
+            value = getattr(self.parameterized, view.name)
+            if value is not None:
+                self._update_trait(view.name, p_obj.renderer(value))
+
+        if self.p.on_init:
             self.execute()
 
 
@@ -187,7 +193,7 @@ class Widgets(param.ParameterizedFunction):
         w = widget_class(**kw)
 
         if hasattr(p_obj, 'callback') and value is not None:
-            self._update_trait(p_name, value, w)
+            self._update_trait(p_name, p_obj.renderer(value), w)
 
         def change_event(event):
             new_values = event['new']
