@@ -6,7 +6,8 @@ from param.parameterized import classlist
 import ipywidgets
 from ipywidgets import (SelectMultiple, Button, HBox, VBox, Layout,
                         Text, HTML, FloatSlider, FloatText, IntText,
-                        IntSlider, SelectMultiple, Image)
+                        IntSlider, SelectMultiple, Image, DatePicker,
+                        ColorPicker, FloatRangeSlider, IntRangeSlider)
 from traitlets import Unicode
 
 from .util import named_objs
@@ -35,6 +36,44 @@ def HTMLWidget(*args, **kw):
     """Forces a parameter value to be text, displayed as HTML"""
     kw['value'] = str(kw['value'])
     return HTML(*args,**kw)
+
+
+def DateWidget(*args, **kw):
+    """
+    DateWidget to pick datetime type, if bounds but no default is
+    defined default to min.
+    """
+    if kw.get('value') is None and 'min' in kw:
+        kw['value'] = kw['min']
+    return DatePicker(*args, **kw)
+
+
+def ColorWidget(*args, **kw):
+    """Color widget to pick hex color (defaults to black)"""
+    if kw.get('value') is None:
+        kw['value'] = '#000000'
+    return ColorPicker(*args, **kw)
+
+
+class RangeWidget(param.ParameterizedFunction):
+    """
+    Range widget switches between integer and float slider dynamically
+    and computes the step size based based on the steps parameter.
+    """
+
+    steps = param.Integer(default=50, doc="""
+       Number of steps used to compute step size for float range.""")
+
+    def __call__(self, *args, **kw):
+        if all(kw[k] is None or isinstance(kw[k], int)
+               for k in ['min', 'max']):
+            widget = IntRangeSlider
+            kw['step'] = 1
+        else:
+            widget = ipywidgets.FloatRangeSlider
+            if not 'step' in kw:
+                kw['step'] = float((kw['max'] - kw['min']))/self.steps
+        return widget(*args, **kw)
 
 
 class ListSelectorWidget(param.ParameterizedFunction):
@@ -244,6 +283,18 @@ ptype2wtype = {
     HTMLView:            ActiveHTMLWidget,
     ImageView:           Image
 }
+
+# Handle new parameters introduced in param 1.5
+try:
+    from param import Color, Date, Range
+    ptype2wtype.update({
+        Color: ColorWidget,
+        Date:  DateWidget,
+        Range: RangeWidget,
+    })
+except:
+    pass
+
 
 def wtype(pobj):
     if pobj.constant: # Ensure constant parameters cannot be edited
