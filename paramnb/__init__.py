@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import sys
 import os
+import ast
 import types
 import itertools
 import json
@@ -197,7 +198,18 @@ class Widgets(param.ParameterizedFunction):
 
         def change_event(event):
             new_values = event['new']
-            setattr(self.parameterized, p_name, new_values)
+            if isinstance(w, ipywidgets.Text):
+                try:
+                    new_values = ast.literal_eval(new_values)
+                except:
+                    w.layout.border = '5px solid #cc0000'
+            try:
+                setattr(self.parameterized, p_name, new_values)
+            except ValueError:
+                w.layout.border = '5px solid #cc0000'
+                return
+            else:
+                w.layout.border = '0px'
             if not self.p.button:
                 self.execute({p_name: new_values})
 
