@@ -274,7 +274,8 @@ class ActiveHTMLWidget(HTML):
 def apply_error_style(w, error):
     "Applies error styling to the supplied widget based on the error code"
     if error:
-        w.layout.border = '5px solid #cc0000'
+        color = '#FFCC00' if error == 'eval' else '#cc0000'
+        w.layout.border = '5px solid %s' % color
     else:
         w.layout.border = '0px'
 

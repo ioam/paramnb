@@ -204,14 +204,14 @@ class Widgets(param.ParameterizedFunction):
                 try:
                     new_values = ast.literal_eval(new_values)
                 except:
-                    error = True
+                    error = 'eval'
 
             # If no error during evaluation try to set parameter
             if not error:
                 try:
                     setattr(self.parameterized, p_name, new_values)
                 except ValueError:
-                    error = True
+                    error = 'validation'
 
             # Style widget to denote error state
             apply_error_style(w, error)
