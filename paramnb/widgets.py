@@ -6,8 +6,8 @@ from param.parameterized import classlist
 import ipywidgets
 from ipywidgets import (SelectMultiple, Button, HBox, VBox, Layout,
                         Text, HTML, FloatSlider, FloatText, IntText,
-                        IntSlider, SelectMultiple, Image, DatePicker,
-                        ColorPicker, FloatRangeSlider, IntRangeSlider)
+                        IntSlider, SelectMultiple, Image, ColorPicker,
+                        FloatRangeSlider, IntRangeSlider)
 from traitlets import Unicode
 
 from .util import named_objs
@@ -302,12 +302,14 @@ ptype2wtype = {
 
 # Handle new parameters introduced in param 1.5
 try:
-    from param import Color, Date, Range
+    from param import Color, Range
     ptype2wtype.update({
         Color: ColorWidget,
-        Date:  DateWidget,
-        Range: RangeWidget,
+        Range: RangeWidget
     })
+
+    from ipywidgets import DatePicker
+    ptype2wtype[Date] = DateWidget
 except:
     pass
 
