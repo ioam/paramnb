@@ -307,6 +307,12 @@ try:
         Color: ColorWidget,
         Range: RangeWidget
     })
+except:
+    pass
+
+try:
+    from param import Date
+    ptype2wtype[Date] = TextWidget
 
     from ipywidgets import DatePicker
     ptype2wtype[Date] = DateWidget

@@ -154,6 +154,9 @@ class Widgets(param.ParameterizedFunction):
             if value is not None:
                 self._update_trait(view.name, p_obj.renderer(value))
 
+        # Keeps track of changes between button presses
+        self._changed = {}
+
         if self.p.on_init:
             self.execute()
 
@@ -221,6 +224,8 @@ class Widgets(param.ParameterizedFunction):
 
             if not error and not self.p.button:
                 self.execute({p_name: new_values})
+            else:
+                self._changed[p_name] = new_values
 
         if hasattr(p_obj, 'callback'):
             p_obj.callback = functools.partial(self._update_trait, p_name)
@@ -333,7 +338,15 @@ class Widgets(param.ParameterizedFunction):
         if self.p.button and not (self.p.callback is None and self.p.next_n==0):
             label = 'Run %s' % self.p.next_n if self.p.next_n>0 else "Run"
             display_button = ipywidgets.Button(description=label)
-            display_button.on_click(self.execute)
+            def click_cb(button):
+                # Execute and clear changes since last button press
+                try:
+                    self.execute(self._changed)
+                except Exception as e:
+                    self._changed.clear()
+                    raise e
+                self._changed.clear()
+            display_button.on_click(click_cb)
             widgets.append(display_button)
 
         outputs = [self.widget(pname) for pname in outputs]
