@@ -65,6 +65,9 @@ class RangeWidget(param.ParameterizedFunction):
        Number of steps used to compute step size for float range.""")
 
     def __call__(self, *args, **kw):
+        has_bounds = not (kw['min'] is None or kw['max'] is None)
+        if not has_bounds:
+            return TextWidget(*args,**kw)
         if all(kw[k] is None or isinstance(kw[k], int)
                for k in ['min', 'max']):
             widget = IntRangeSlider
@@ -268,12 +271,24 @@ class ActiveHTMLWidget(HTML):
     value = Unicode('').tag(sync=True)
 
 
+def apply_error_style(w, error):
+    "Applies error styling to the supplied widget based on the error code"
+    if error:
+        w.layout.border = '5px solid #cc0000'
+    else:
+        w.layout.border = '0px'
+
+
 # Combine all widget JS code into on variable
 WIDGET_JS = ''.join([HTMLVIEW_JS])
+
+# Define parameters which should be evaluated using ast.literal_eval
+literal_params = (param.Dict, param.List, param.Tuple)
 
 # Maps from Parameter type to ipython widget types with any options desired
 ptype2wtype = {
     param.Parameter:     TextWidget,
+    param.Dict:          TextWidget,
     param.Selector:      ipywidgets.Dropdown,
     param.Boolean:       ipywidgets.Checkbox,
     param.Number:        FloatWidget,

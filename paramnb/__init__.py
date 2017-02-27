@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import sys
 import os
+import ast
 import types
 import itertools
 import json
@@ -22,7 +23,7 @@ import ipywidgets
 import param
 
 from . import view
-from .widgets import wtype, WIDGET_JS
+from .widgets import wtype, WIDGET_JS, apply_error_style, literal_params
 from .util import named_objs, get_method_owner
 from .view import _View
 
@@ -197,8 +198,25 @@ class Widgets(param.ParameterizedFunction):
 
         def change_event(event):
             new_values = event['new']
-            setattr(self.parameterized, p_name, new_values)
-            if not self.p.button:
+            error = False
+            # Apply literal evaluation to values
+            if (isinstance(w, ipywidgets.Text) and isinstance(p_obj, literal_params)):
+                try:
+                    new_values = ast.literal_eval(new_values)
+                except:
+                    error = True
+
+            # If no error during evaluation try to set parameter
+            if not error:
+                try:
+                    setattr(self.parameterized, p_name, new_values)
+                except ValueError:
+                    error = True
+
+            # Style widget to denote error state
+            apply_error_style(w, error)
+
+            if not error and not self.p.button:
                 self.execute({p_name: new_values})
 
         if hasattr(p_obj, 'callback'):
