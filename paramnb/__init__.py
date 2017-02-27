@@ -27,8 +27,11 @@ from .widgets import wtype, WIDGET_JS, apply_error_style, literal_params
 from .util import named_objs, get_method_owner
 from .view import _View
 
-__version__ = param.Version(release=(1,0,2), fpath=__file__,
-                             commit="$Format:%h$", reponame='paramnb')
+try:
+    __version__ = param.Version(release=(2,0,0), fpath=__file__,
+                                commit="$Format:%h$", reponame='paramnb')
+except:
+    __version__ = '2.0.0-unknown'
 
 
 def run_next_cells(n):
