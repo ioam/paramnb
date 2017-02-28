@@ -28,10 +28,10 @@ from .util import named_objs, get_method_owner
 from .view import _View
 
 try:
-    __version__ = param.Version(release=(2,0,0), fpath=__file__,
+    __version__ = param.Version(release=(2,0,1), fpath=__file__,
                                 commit="$Format:%h$", reponame='paramnb')
 except:
-    __version__ = '2.0.0-unknown'
+    __version__ = '2.0.1-unknown'
 
 
 def run_next_cells(n):
