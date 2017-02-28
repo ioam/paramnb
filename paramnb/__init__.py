@@ -124,7 +124,7 @@ class Widgets(param.ParameterizedFunction):
                                   objects=['row','column'],doc="""
         Whether to lay out the buttons as a row or a column.""")
 
-    continuous_update = param.Boolean(default=True, doc="""
+    continuous_update = param.Boolean(default=False, doc="""
         If true, will continuously update the next_n and/or callback, 
         if any, as a slider widget is dragged.""")
 
