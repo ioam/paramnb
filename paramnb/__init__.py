@@ -124,6 +124,10 @@ class Widgets(param.ParameterizedFunction):
                                   objects=['row','column'],doc="""
         Whether to lay out the buttons as a row or a column.""")
 
+    continuous_update = param.Boolean(default=True, doc="""
+        If true, will continuously update the next_n and/or callback, 
+        if any, as a slider widget is dragged.""")
+
     def __call__(self, parameterized, **params):
         self.p = param.ParamOverrides(self, params)
         if self.p.initializer:
@@ -187,6 +191,8 @@ class Widgets(param.ParameterizedFunction):
             kw['value'] = action_cb
 
         kw['name'] = p_name
+
+        kw['continuous_update']=self.p.continuous_update
 
         if hasattr(p_obj, 'callback'):
             kw.pop('value', None)
