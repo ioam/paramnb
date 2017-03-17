@@ -184,7 +184,11 @@ class Widgets(param.ParameterizedFunction):
         widget_class = wtype(p_obj)
 
         value = getattr(self.parameterized, p_name)
-        kw = dict(tooltip=p_obj.doc, value=value)
+
+        kw = dict(value=value)
+        if p_obj.doc:
+            kw['tooltip'] = p_obj.doc
+
         if isinstance(p_obj, param.Action):
             def action_cb(button):
                 getattr(self.parameterized, p_name)(self.parameterized)
