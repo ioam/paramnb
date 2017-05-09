@@ -10,17 +10,18 @@ class _View(param.Parameter):
     and may optionally supply the desired size of the viewport.
     """
 
-    __slots__ = ['callback', 'renderer']
+    __slots__ = ['callbacks', 'renderer']
 
     def __init__(self, default=None, callback=None, renderer=None, **kwargs):
-        self.callback = None
+        self.callbacks = {}
         self.renderer = (lambda x: x) if renderer is None else renderer
         super(_View, self).__init__(default, **kwargs)
 
     def __set__(self, obj, val):
         super(_View, self).__set__(obj, val)
-        if self.callback:
-            self.callback(self.renderer(val))
+        obj_id = id(obj)
+        if obj_id in self.callbacks:
+            self.callbacks[obj_id](self.renderer(val))
 
 
 class HTML(_View):
