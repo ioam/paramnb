@@ -198,7 +198,7 @@ class Widgets(param.ParameterizedFunction):
 
         kw['continuous_update']=self.p.continuous_update
 
-        if hasattr(p_obj, 'callback'):
+        if hasattr(p_obj, 'callbacks'):
             kw.pop('value', None)
 
         if hasattr(p_obj, 'get_range'):
@@ -209,7 +209,7 @@ class Widgets(param.ParameterizedFunction):
 
         w = widget_class(**kw)
 
-        if hasattr(p_obj, 'callback') and value is not None:
+        if hasattr(p_obj, 'callbacks') and value is not None:
             self._update_trait(p_name, p_obj.renderer(value), w)
 
         def change_event(event):
@@ -237,8 +237,8 @@ class Widgets(param.ParameterizedFunction):
             else:
                 self._changed[p_name] = new_values
 
-        if hasattr(p_obj, 'callback'):
-            p_obj.callback = functools.partial(self._update_trait, p_name)
+        if hasattr(p_obj, 'callbacks'):
+            p_obj.callbacks[id(self.parameterized)] = functools.partial(self._update_trait, p_name)
         else:
             w.observe(change_event, 'value')
 
