@@ -8,11 +8,11 @@ except ImportError:
     from distutils.core import setup
 
 setup_args = {}
-install_requires = ['param>=1.5.0', 'ipywidgets>=5.2.2']
+install_requires = ['param>=1.5.1', 'ipywidgets>=5.2.2']
 
 setup_args.update(dict(
     name='paramnb',
-    version="2.0.1",
+    version="2.0.2",
     install_requires = install_requires,
     url = 'https://github.com/ioam/paramnb',
     description='Generate ipywidgets from Parameterized objects in the notebook',
