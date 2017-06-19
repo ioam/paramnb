@@ -281,7 +281,7 @@ class Widgets(param.ParameterizedFunction):
         run_next_cells(self.p.next_n)
         if self.p.callback is not None:
             if get_method_owner(self.p.callback) is self.parameterized:
-               self.p.callback(**changed)
+                self.p.callback(**changed)
             else:
                 self.p.callback(self.parameterized, **changed)
 
