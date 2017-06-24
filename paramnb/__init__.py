@@ -392,6 +392,9 @@ class Widgets(param.ParameterizedFunction):
         return widgets, outputs
 
 
+widgets.editor = functools.partial(Widgets,closable=True)
+
+
 class JSONInit(param.Parameterized):
     """
     Callable that can be passed to Widgets.initializer to set Parameter
