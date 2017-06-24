@@ -89,6 +89,9 @@ class Widgets(param.ParameterizedFunction):
         and/or calling a callable) when first instantiating this
         object.""")
 
+    closable = param.Boolean(default=False, doc="""
+        Whether to show a button allowing the Widgets to be closed""")
+    
     button = param.Boolean(default=False, doc="""
         Whether to show a button to control cell execution.
         If false, will execute `next` cells on any widget
@@ -151,6 +154,7 @@ class Widgets(param.ParameterizedFunction):
 
         display(Javascript(WIDGET_JS))
         display(widget_box)
+        self._widget_box = widget_box
 
         for view in views:
             p_obj = self.parameterized.params(view.name)
@@ -363,6 +367,13 @@ class Widgets(param.ParameterizedFunction):
         else:
             widgets += [self.widget(pname) for pname in ordered_params]
 
+        if self.p.closable:
+            close_button = ipywidgets.Button(description="Close")
+            # TODO: what other cleanup should be done?
+            close_button.on_click(lambda _: self._widget_box.close())
+            widgets.append(close_button)
+            
+            
         if self.p.button and not (self.p.callback is None and self.p.next_n==0):
             label = 'Run %s' % self.p.next_n if self.p.next_n>0 else "Run"
             display_button = ipywidgets.Button(description=label)
