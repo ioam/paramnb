@@ -274,7 +274,8 @@ class DropdownWithEdit(ipywidgets.Widget):
     
     def __init__(self, *args, **kwargs):
         self._select = Dropdown(*args,**kwargs)        
-        self._edit = Button(description='edit')
+        self._edit = Button(description='...',
+                            layout=Layout(width='15px'))
         self._composite = HBox([self._select,self._edit])
         super(DropdownWithEdit, self).__init__()
         self.layout = self._composite.layout

@@ -141,6 +141,9 @@ class Widgets(param.ParameterizedFunction):
 
         widgets, views = self.widgets()
         layout = ipywidgets.Layout(display='flex', flex_flow=self.p.layout)
+        if self.p.closable:
+            layout.border = 'solid 1px'
+        
         widget_box = ipywidgets.VBox(children=widgets, layout=layout)
         if views:
             view_box = ipywidgets.VBox(children=views, layout=layout)
