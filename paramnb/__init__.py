@@ -207,6 +207,9 @@ class Widgets(param.ParameterizedFunction):
         if hasattr(p_obj, 'get_soft_bounds'):
             kw['min'], kw['max'] = p_obj.get_soft_bounds()
 
+        if hasattr(p_obj,'is_instance') and p_obj.is_instance:
+            kw['options'][kw['value'].__class__.__name__]=kw['value']
+              
         w = widget_class(**kw)
 
         if hasattr(p_obj, 'callbacks') and value is not None:
@@ -221,6 +224,13 @@ class Widgets(param.ParameterizedFunction):
                     new_values = ast.literal_eval(new_values)
                 except:
                     error = 'eval'
+            elif hasattr(p_obj,'is_instance') and p_obj.is_instance and isinstance(new_values,type):
+                # results in new instance each time non-default option
+                # is selected; could consider caching.
+                try:
+                    new_values = new_values()
+                except:
+                    error = 'instantiate'
 
             # If no error during evaluation try to set parameter
             if not error:
