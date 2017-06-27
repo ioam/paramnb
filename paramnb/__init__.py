@@ -188,7 +188,9 @@ class Widgets(param.ParameterizedFunction):
         # For ObjectSelector, pick first from objects if no default;
         # see https://github.com/ioam/param/issues/164
         if hasattr(p_obj,'objects') and len(p_obj.objects)>0 and value is None:
-            value = p_obj.objects[0]            
+            value = p_obj.objects[0]                        
+            if isinstance(p_obj,param.ListSelector):
+                value = [value]
             setattr(self.parameterized, p_name, value)
         
         kw = dict(value=value)
