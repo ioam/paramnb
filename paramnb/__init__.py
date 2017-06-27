@@ -185,6 +185,12 @@ class Widgets(param.ParameterizedFunction):
 
         value = getattr(self.parameterized, p_name)
 
+        # For ObjectSelector, pick first from objects if no default;
+        # see https://github.com/ioam/param/issues/164
+        if hasattr(p_obj,'objects') and len(p_obj.objects)>0 and value is None:
+            value = p_obj.objects[0]            
+            setattr(self.parameterized, p_name, value)
+        
         kw = dict(value=value)
         if p_obj.doc:
             kw['tooltip'] = p_obj.doc
