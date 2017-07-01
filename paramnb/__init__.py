@@ -395,6 +395,10 @@ class Widgets(param.ParameterizedFunction):
         return widgets, outputs
 
 
+# TODO: this is awkward. An alternative would be to import Widgets in
+# widgets.py only at the point(s) where Widgets is needed rather than
+# at the top level (to avoid circular imports). Probably some
+# reorganization would be better, though.
 widgets.editor = functools.partial(Widgets,closable=True)
 
 
