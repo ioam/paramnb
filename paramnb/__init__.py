@@ -89,8 +89,8 @@ class Widgets(param.ParameterizedFunction):
         and/or calling a callable) when first instantiating this
         object.""")
 
-    closable = param.Boolean(default=False, doc="""
-        Whether to show a button allowing the Widgets to be closed""")
+    close_button = param.Boolean(default=False, doc="""
+        Whether to show a button allowing the Widgets to be closed.""")
     
     button = param.Boolean(default=False, doc="""
         Whether to show a button to control cell execution.
@@ -141,7 +141,7 @@ class Widgets(param.ParameterizedFunction):
 
         widgets, views = self.widgets()
         layout = ipywidgets.Layout(display='flex', flex_flow=self.p.layout)
-        if self.p.closable:
+        if self.p.close_button:
             layout.border = 'solid 1px'
         
         widget_box = ipywidgets.VBox(children=widgets, layout=layout)
@@ -370,7 +370,7 @@ class Widgets(param.ParameterizedFunction):
         else:
             widgets += [self.widget(pname) for pname in ordered_params]
 
-        if self.p.closable:
+        if self.p.close_button:
             close_button = ipywidgets.Button(description="Close")
             # TODO: what other cleanup should be done?
             close_button.on_click(lambda _: self._widget_box.close())
@@ -399,7 +399,7 @@ class Widgets(param.ParameterizedFunction):
 # widgets.py only at the point(s) where Widgets is needed rather than
 # at the top level (to avoid circular imports). Probably some
 # reorganization would be better, though.
-widgets.editor = functools.partial(Widgets,closable=True)
+widgets.editor = functools.partial(Widgets,close_button=True)
 
 
 class JSONInit(param.Parameterized):
