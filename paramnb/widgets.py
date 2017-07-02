@@ -7,11 +7,17 @@ import ipywidgets
 from ipywidgets import (SelectMultiple, Button, HBox, VBox, Layout,
                         Text, HTML, FloatSlider, FloatText, IntText,
                         IntSlider, SelectMultiple, Image, ColorPicker,
-                        FloatRangeSlider, IntRangeSlider)
+                        FloatRangeSlider, IntRangeSlider, Dropdown)
+import traitlets
 from traitlets import Unicode
 
 from .util import named_objs
 from .view import HTML as HTMLView, Image as ImageView
+
+
+# What to use for editing parameters of an object,
+# e.g. paramnb.Widgets class.
+editor = None
 
 
 def FloatWidget(*args, **kw):
@@ -252,6 +258,49 @@ class CrossSelect(SelectMultiple):
         return self._composite.get_state(key)
 
 
+# Composite widget containing a Dropdown and a Button in an HBox.
+# Some things are routed to/from the Dropdown, others to/from the
+# composite HBox.
+class DropdownWithEdit(ipywidgets.Widget):
+    """
+    Dropdown, but displays an edit button if the current selection is
+    a parameterized object.
+    """
+
+    # I couldn't figure out which widget class actually declares the
+    # value trait. Might not be needed in ipywidgets>6 because I
+    # can see value trait declared in ValueWidget...
+    value = traitlets.Any()
+    
+    def __init__(self, *args, **kwargs):
+        self._select = Dropdown(*args,**kwargs)        
+        self._edit = Button(description='...',
+                            layout=Layout(width='15px'))
+        self._composite = HBox([self._select,self._edit])
+        super(DropdownWithEdit, self).__init__()
+        self.layout = self._composite.layout
+        # so that others looking at this widget's value get the
+        # dropdown's value
+        traitlets.link((self._select,'value'),(self,'value'))       
+        self._edit.on_click(lambda _: editor(self._select.value))
+        self._select.observe(lambda e: self._set_editable(e['new']),'value')
+        self._set_editable(self._select.value)
+
+    def _set_editable(self,v):
+        if hasattr(v,'params'):
+            self._edit.layout.display = None # i.e. make it visible
+        else:
+            self._edit.layout.display = 'none'
+        
+    def _ipython_display_(self, **kwargs):
+        self._composite._ipython_display_(**kwargs)
+    
+    def get_state(self, *args, **kw):
+        # support layouts; see CrossSelect.get_state
+        return self._composite.get_state(*args,**kw)
+    
+    
+
 HTMLVIEW_JS = """
 define('activehtml', ["jupyter-js-widgets"], function(widgets) {
     var ActiveHTMLView = widgets.HTMLView.extend({
@@ -290,7 +339,7 @@ literal_params = (param.Dict, param.List, param.Tuple)
 ptype2wtype = {
     param.Parameter:     TextWidget,
     param.Dict:          TextWidget,
-    param.Selector:      ipywidgets.Dropdown,
+    param.Selector:      DropdownWithEdit,
     param.Boolean:       ipywidgets.Checkbox,
     param.Number:        FloatWidget,
     param.Integer:       IntegerWidget,

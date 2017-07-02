@@ -89,6 +89,9 @@ class Widgets(param.ParameterizedFunction):
         and/or calling a callable) when first instantiating this
         object.""")
 
+    close_button = param.Boolean(default=False, doc="""
+        Whether to show a button allowing the Widgets to be closed.""")
+    
     button = param.Boolean(default=False, doc="""
         Whether to show a button to control cell execution.
         If false, will execute `next` cells on any widget
@@ -138,6 +141,9 @@ class Widgets(param.ParameterizedFunction):
 
         widgets, views = self.widgets()
         layout = ipywidgets.Layout(display='flex', flex_flow=self.p.layout)
+        if self.p.close_button:
+            layout.border = 'solid 1px'
+        
         widget_box = ipywidgets.VBox(children=widgets, layout=layout)
         if views:
             view_box = ipywidgets.VBox(children=views, layout=layout)
@@ -151,6 +157,7 @@ class Widgets(param.ParameterizedFunction):
 
         display(Javascript(WIDGET_JS))
         display(widget_box)
+        self._widget_box = widget_box
 
         for view in views:
             p_obj = self.parameterized.params(view.name)
@@ -363,6 +370,13 @@ class Widgets(param.ParameterizedFunction):
         else:
             widgets += [self.widget(pname) for pname in ordered_params]
 
+        if self.p.close_button:
+            close_button = ipywidgets.Button(description="Close")
+            # TODO: what other cleanup should be done?
+            close_button.on_click(lambda _: self._widget_box.close())
+            widgets.append(close_button)
+            
+            
         if self.p.button and not (self.p.callback is None and self.p.next_n==0):
             label = 'Run %s' % self.p.next_n if self.p.next_n>0 else "Run"
             display_button = ipywidgets.Button(description=label)
@@ -379,6 +393,13 @@ class Widgets(param.ParameterizedFunction):
 
         outputs = [self.widget(pname) for pname in outputs]
         return widgets, outputs
+
+
+# TODO: this is awkward. An alternative would be to import Widgets in
+# widgets.py only at the point(s) where Widgets is needed rather than
+# at the top level (to avoid circular imports). Probably some
+# reorganization would be better, though.
+widgets.editor = functools.partial(Widgets,close_button=True)
 
 
 class JSONInit(param.Parameterized):
