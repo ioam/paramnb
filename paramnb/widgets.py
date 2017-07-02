@@ -259,7 +259,7 @@ class CrossSelect(SelectMultiple):
 
 
 # Composite widget containing a Dropdown and a Button in an HBox.
-# Some things are routed to/from the Dropdown, other to/from the
+# Some things are routed to/from the Dropdown, others to/from the
 # composite HBox.
 class DropdownWithEdit(ipywidgets.Widget):
     """
@@ -268,7 +268,7 @@ class DropdownWithEdit(ipywidgets.Widget):
     """
 
     # I couldn't figure out which widget class actually declares the
-    # value trait. Might not be needed in in ipywidgets>6 because I
+    # value trait. Might not be needed in ipywidgets>6 because I
     # can see value trait declared in ValueWidget...
     value = traitlets.Any()
     
@@ -288,7 +288,7 @@ class DropdownWithEdit(ipywidgets.Widget):
 
     def _set_editable(self,v):
         if hasattr(v,'params'):
-            self._edit.layout.display = None # i.e. make it visible :)
+            self._edit.layout.display = None # i.e. make it visible
         else:
             self._edit.layout.display = 'none'
         
@@ -296,9 +296,7 @@ class DropdownWithEdit(ipywidgets.Widget):
         self._composite._ipython_display_(**kwargs)
     
     def get_state(self, *args, **kw):
-        # I copied "HACK: Lets this composite widget pretend to be a
-        # regular widget" from CrossSelect, sort of. Anything I ought
-        # to get from _select here?
+        # support layouts; see CrossSelect.get_state
         return self._composite.get_state(*args,**kw)
     
     
