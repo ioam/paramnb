@@ -1,4 +1,5 @@
 import re
+import datetime
 
 import param
 from param.parameterized import classlist
@@ -298,7 +299,154 @@ class DropdownWithEdit(ipywidgets.Widget):
     def get_state(self, *args, **kw):
         # support layouts; see CrossSelect.get_state
         return self._composite.get_state(*args,**kw)
+
+
+class _DateRange(ipywidgets.Widget):
+    """
+    Abstract base class for composite widgets that use two widgets to
+    represent a (start, end) date range parameter.
+    """
+    __abstract = True
     
+    # TODO: could be tuple; need to decide about value of None
+    value = traitlets.Any()
+
+    def __init__(self, *args, **kwargs):
+        self._mindate = kwargs.get('min') 
+        self._maxdate = kwargs.get('max')
+        self.value = kwargs.pop('value')
+        assert self.value is not None # for now; see https://github.com/ioam/paramnb/issues/50
+        #if self.value is None and self._mindate is not None and self._maxdate is not None:
+        #    self.value = (self._mindate,self._maxdate)
+        self._w0 = self._create0(*args,**kwargs)
+        self._w1 = self._create1(*args,**kwargs)
+        self._composite = ipywidgets.HBox([self._w0,self._w1])
+        super(_DateRange, self).__init__()
+        self.layout = self._composite.layout
+        self._w0.observe(self._set0,'value')
+        self._w1.observe(self._set1,'value')
+
+    def _create0(self,*args,**kw):
+        raise NotImplementedError
+
+    def _create1(self,*args,**kw):
+        raise NotImplementedError
+    
+    def _set0(self,e):
+        raise NotImplementedError
+    
+    def _set1(self,e):
+        raise NotImplementedError
+
+    def _ipython_display_(self, **kwargs):
+        self._composite._ipython_display_(**kwargs)
+    
+    def get_state(self, *args, **kw):
+        return self._composite.get_state(*args,**kw)
+    
+
+class StartEnd(_DateRange):
+    """
+    Represents a DateRange parameter with start and end date pickers.
+    """
+    def _create0(self,*args,**kwargs):
+        kw = {'value':self.value[0],'description':'start'}
+        kw.update(kwargs)
+        return ipywidgets.DatePicker(*args,**kw)
+    
+    def _create1(self,*args,**kwargs):
+        kw = {'value':self.value[1],'description':'end'}
+        kw.update(kwargs)
+        return ipywidgets.DatePicker(*args,**kw)
+
+    def _set0(self,e):
+        self.value = (e['new'],self.value[1])
+    
+    def _set1(self,e):
+        self.value = (self.value[0],e['new'])
+
+    
+class DurationToEnd(_DateRange):
+    """
+    Represents a DateRange parameter with end date picker plus
+    duration-to-end-date slider (or text widget if unbounded).
+
+    Duration is in days.
+    """
+    def _create0(self,*args,**kwargs):
+        kw = {'value':(self.value[1]-self.value[0]).days,
+              'description':'duration (days)'}
+        kw.update(kwargs)
+        if kw.get('max') is not None:
+            kw['max'] = (self.value[1]-kw['min']).days
+            kw['min'] = 0
+            return ipywidgets.IntSlider(*args,**kw)
+        else:
+            return TextWidget(*args,**kw)
+
+    def _create1(self,*args,**kwargs):
+        kw = {'value':self.value[1],'description':'end'}
+        kw.update(kwargs)
+        return ipywidgets.DatePicker(*args,**kw)
+
+    def _set0(self,e):
+        self.value = (self.value[1]-datetime.timedelta(int(e['new'])),self.value[1])
+        
+    def _set1(self,e):
+        self.value = (self.value[0],e['new'])
+        if self._maxdate is not None:
+            self._w0.max = (self._maxdate-self.value[0]).days
+        
+
+class DurationFromStart(_DateRange):
+    """
+    Represents a DateRange parameter with start date picker plus
+    duration-from-start-date slider (or text widget if unbounded).
+
+    Duration is in days.
+    """            
+    def _create0(self,*args,**kwargs):
+        kw = {'value':self.value[0],'description':'start'}
+        kw.update(kwargs)
+        return ipywidgets.DatePicker(*args,**kw)
+        
+    def _create1(self,*args,**kwargs):
+        kw = {'value':(self.value[1]-self.value[0]).days,
+              'description':'duration (days)'}
+        kw.update(kwargs)
+        if kw.get('max') is not None:
+            kw['max'] = (kw['max']-self.value[0]).days
+            kw['min'] = 0
+            return ipywidgets.IntSlider(*args,**kw)
+        else:
+            return TextWidget(*args,**kw)
+    
+    def _set0(self,e):
+        self.value = (e['new'],self.value[1])
+        if self._maxdate is not None:
+            self._w1.max = (self._maxdate - self.value[0]).days
+
+    def _set1(self,e):
+        self.value = (self.value[0],self.value[0]+datetime.timedelta(int(e['new'])))
+
+    
+class DateRangeSelector(param.ParameterizedFunction):
+    """
+    Returns a _DateRange widget as specified by style parameter.
+    """
+    style = param.ClassSelector(_DateRange,default=StartEnd,is_instance=False,doc="""
+        Something.""")
+    
+    def __call__(self, *args, **kw):
+        """
+        If date_range_style keyword argument is supplied, will be used to
+        set style and should be name of a _DateRange class.
+        """
+        date_range_style = kw.pop('date_range_style')
+        if date_range_style is not None:
+            self.style = self.params('style').get_range()[date_range_style]            
+        return self.style(*args, **kw)
+
     
 
 HTMLVIEW_JS = """
@@ -349,6 +497,9 @@ ptype2wtype = {
     ImageView:           Image
 }
 
+# TODO: param/widget registry should specify all ideal mappings then
+# we should auto add whatever's available
+
 # Handle new parameters introduced in param 1.5
 try:
     from param import Color, Range
@@ -368,6 +519,12 @@ try:
 except:
     pass
 
+# Handle new parameters introduced in unreleased param
+try:
+    from param import DateRange
+    ptype2wtype[DateRange] = DateRangeSelector
+except:
+    pass
 
 def wtype(pobj):
     if pobj.constant: # Ensure constant parameters cannot be edited

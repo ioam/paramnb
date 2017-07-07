@@ -131,6 +131,12 @@ class Widgets(param.ParameterizedFunction):
         If true, will continuously update the next_n and/or callback, 
         if any, as a slider widget is dragged.""")
 
+    # passed through to DateRangeSelector widget
+    date_range_style = param.ObjectSelector(
+        default='StartEnd',
+        objects=['StartEnd','DurationFromStart','DurationToEnd'],doc="""
+        How to represent DateRange parameters; see widgets.DateRangeSelector.""")
+
     def __call__(self, parameterized, **params):
         self.p = param.ParamOverrides(self, params)
         if self.p.initializer:
@@ -208,6 +214,9 @@ class Widgets(param.ParameterizedFunction):
             def action_cb(button):
                 getattr(self.parameterized, p_name)(self.parameterized)
             kw['value'] = action_cb
+
+        if isinstance(p_obj,param.DateRange):
+            kw['date_range_style'] = self.p.date_range_style
 
         kw['name'] = p_name
 
