@@ -320,7 +320,7 @@ class _DateRange(ipywidgets.Widget):
         #    self.value = (self._mindate,self._maxdate)
         self._w0 = self._create0(*args,**kwargs)
         self._w1 = self._create1(*args,**kwargs)
-        self._composite = ipywidgets.HBox([self._w0,self._w1])
+        self._composite = ipywidgets.VBox([self._w0,self._w1])
         super(_DateRange, self).__init__()
         self.layout = self._composite.layout
         self._w0.observe(self._set0,'value')
