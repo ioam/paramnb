@@ -378,7 +378,7 @@ class Widgets(param.ParameterizedFunction):
 
 
         if self.p.button and not (self.p.callback is None and self.p.next_n==0):
-            label = 'Run %s' % self.p.next_n if self.p.next_n>0 else "Run"
+            label = 'Run %s' % self.p.next_n if self.p.next_n != 'all' else "Run"
             display_button = ipywidgets.Button(description=label)
             def click_cb(button):
                 # Execute and clear changes since last button press
