@@ -249,7 +249,7 @@ class CrossSelect(SelectMultiple):
         Displays the composite widget.
         """
         self._composite._ipython_display_(**kwargs)
-    
+
     def get_state(self, key=None, drop_defaults=False):
         # HACK: Lets this composite widget pretend to be a regular widget
         # when included into a layout.
@@ -271,9 +271,9 @@ class DropdownWithEdit(ipywidgets.Widget):
     # value trait. Might not be needed in ipywidgets>6 because I
     # can see value trait declared in ValueWidget...
     value = traitlets.Any()
-    
+
     def __init__(self, *args, **kwargs):
-        self._select = Dropdown(*args,**kwargs)        
+        self._select = Dropdown(*args,**kwargs)
         self._edit = Button(description='...',
                             layout=Layout(width='15px'))
         self._composite = HBox([self._select,self._edit])
@@ -281,7 +281,7 @@ class DropdownWithEdit(ipywidgets.Widget):
         self.layout = self._composite.layout
         # so that others looking at this widget's value get the
         # dropdown's value
-        traitlets.link((self._select,'value'),(self,'value'))       
+        traitlets.link((self._select,'value'),(self,'value'))
         self._edit.on_click(lambda _: editor(self._select.value))
         self._select.observe(lambda e: self._set_editable(e['new']),'value')
         self._set_editable(self._select.value)
@@ -291,15 +291,15 @@ class DropdownWithEdit(ipywidgets.Widget):
             self._edit.layout.display = None # i.e. make it visible
         else:
             self._edit.layout.display = 'none'
-        
+
     def _ipython_display_(self, **kwargs):
         self._composite._ipython_display_(**kwargs)
-    
+
     def get_state(self, *args, **kw):
         # support layouts; see CrossSelect.get_state
         return self._composite.get_state(*args,**kw)
-    
-    
+
+
 
 HTMLVIEW_JS = """
 define('activehtml', ["jupyter-js-widgets"], function(widgets) {

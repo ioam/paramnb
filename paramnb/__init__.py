@@ -91,7 +91,7 @@ class Widgets(param.ParameterizedFunction):
 
     close_button = param.Boolean(default=False, doc="""
         Whether to show a button allowing the Widgets to be closed.""")
-    
+
     button = param.Boolean(default=False, doc="""
         Whether to show a button to control cell execution.
         If false, will execute `next` cells on any widget
@@ -128,7 +128,7 @@ class Widgets(param.ParameterizedFunction):
         Whether to lay out the buttons as a row or a column.""")
 
     continuous_update = param.Boolean(default=False, doc="""
-        If true, will continuously update the next_n and/or callback, 
+        If true, will continuously update the next_n and/or callback,
         if any, as a slider widget is dragged.""")
 
     def __call__(self, parameterized, **params):
@@ -143,7 +143,7 @@ class Widgets(param.ParameterizedFunction):
         layout = ipywidgets.Layout(display='flex', flex_flow=self.p.layout)
         if self.p.close_button:
             layout.border = 'solid 1px'
-        
+
         widget_box = ipywidgets.VBox(children=widgets, layout=layout)
         if views:
             view_box = ipywidgets.VBox(children=views, layout=layout)
@@ -195,11 +195,11 @@ class Widgets(param.ParameterizedFunction):
         # For ObjectSelector, pick first from objects if no default;
         # see https://github.com/ioam/param/issues/164
         if hasattr(p_obj,'objects') and len(p_obj.objects)>0 and value is None:
-            value = p_obj.objects[0]                        
+            value = p_obj.objects[0]
             if isinstance(p_obj,param.ListSelector):
                 value = [value]
             setattr(self.parameterized, p_name, value)
-        
+
         kw = dict(value=value)
         if p_obj.doc:
             kw['tooltip'] = p_obj.doc
@@ -224,7 +224,7 @@ class Widgets(param.ParameterizedFunction):
 
         if hasattr(p_obj,'is_instance') and p_obj.is_instance:
             kw['options'][kw['value'].__class__.__name__]=kw['value']
-              
+
         w = widget_class(**kw)
 
         if hasattr(p_obj, 'callbacks') and value is not None:
@@ -375,8 +375,8 @@ class Widgets(param.ParameterizedFunction):
             # TODO: what other cleanup should be done?
             close_button.on_click(lambda _: self._widget_box.close())
             widgets.append(close_button)
-            
-            
+
+
         if self.p.button and not (self.p.callback is None and self.p.next_n==0):
             label = 'Run %s' % self.p.next_n if self.p.next_n>0 else "Run"
             display_button = ipywidgets.Button(description=label)
