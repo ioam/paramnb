@@ -243,7 +243,8 @@ class Widgets(param.ParameterizedFunction):
                 # results in new instance each time non-default option
                 # is selected; could consider caching.
                 try:
-                    new_values = new_values()
+                    # awkward: support ParameterizedFunction
+                    new_values = new_values.instance() if hasattr(new_values,'instance') else new_values()
                 except:
                     error = 'instantiate'
 
