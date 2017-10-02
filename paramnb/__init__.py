@@ -312,28 +312,21 @@ class Widgets(param.ParameterizedFunction):
                 self.p.callback(self.parameterized, **changed)
 
 
-    # Define tooltips, other settings
+    # Define some settings :)
     preamble = """
         <style>
-          .ttip { position: relative; display: inline-block; }
-          .ttip .ttiptext { visibility: hidden; background-color: #F8F8F8; outline: #CCCCCC solid thin;
-             color: black; border-radius: 2px; padding: 2px; text-align: center;
-             position: absolute; left: 53%; top: 30px; box-shadow: 7px 7px 10px #DDDDDD;
-             z-index: 100; min-width: 100px; font-size: 80%}
-          .ttip:hover .ttiptext { visibility: visible; }
           .widget-dropdown .dropdown-menu { width: 100% }
           .widget-select-multiple select { min-height: 100px; min-width: 300px;}
         </style>
         """
 
-    label_format = """<div class="ttip" style="padding: 5px; width: {0};
+    label_format = """<div title="{2}" style="padding: 5px; width: {0};
                       text-align: right;">{1}</div>"""
 
     def helptip(self,obj):
         """Return HTML code formatting a tooltip if help is available"""
         helptext = obj.__doc__
-        if not self.p.tooltips or not helptext: return ""
-        return """<span class="ttiptext">{0}</span>""".format(helptext)
+        return "" if (not self.p.tooltips or not helptext) else helptext
 
 
     def widgets(self):
@@ -363,7 +356,7 @@ class Widgets(param.ParameterizedFunction):
             p = self.parameterized.params(pname)
             # omit name for buttons, which already show the name on the button
             name = "" if issubclass(type(p),param.Action) else pname
-            return ipywidgets.HTML(self.label_format.format(label_width, name + self.helptip(p)))
+            return ipywidgets.HTML(self.label_format.format(label_width, name, self.helptip(p)))
 
         if self.p.show_labels:
             widgets += [ipywidgets.HBox(children=[format_name(pname),self.widget(pname)])
