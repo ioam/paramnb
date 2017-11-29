@@ -27,7 +27,7 @@ jobs:
       script:
       - cd doc
       - nbsite_nbpagebuild.py ioam paramnb . .
-      - sphinx-build -b html . ./_build/html
+      - PARAMNB_INIT='{"p1":5}' TARGETED='{"Target1":{"p1":3}, "Target2":{"s":"test"}}' CUSTOM='{"custom":{"val":99}}' sphinx-build -b html . ./_build/html
       - nbsite_fix_links.py _build/html
       - touch ./_build/html/.nojekyll
       - nbsite_cleandisthtml.py ./_build/html take_a_chance
