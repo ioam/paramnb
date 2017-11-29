@@ -7,7 +7,7 @@ sudo: false
 
 stages:
   - name: docs
-    if: branch = docs
+    if: branch = docs2
 
 # TODO: stage=docs (above) only on tag once initial version is
 # up. Same for gh pages deploy section (at the bottom).
@@ -38,4 +38,4 @@ deploy:
   github_token: $GITHUB_TOKEN
   local_dir: ./_build/html
   on:
-    branch: docs
+    branch: docs2
