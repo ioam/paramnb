@@ -1,25 +1,21 @@
 package:
   name: paramnb
-  version: 2.0.2
+  version: {{ os.environ.get("VERSIONHACK") }}
 
 source:
   path: .
 
-extra:
-  channels:
-    - ioam
-    - conda-forge
+build:
+  noarch: python
+  script: python setup.py install --single-version-externally-managed --record=record.txt
 
 requirements:
   build:
     - python
     - setuptools
-    - param >=1.5.0
-    - ipywidgets >=5.2.2
   run:
-    - python
+    - param >=1.5.1
     - ipywidgets >=5.2.2
-    - param >=1.5.0
 
 test:
   imports:
