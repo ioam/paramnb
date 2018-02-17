@@ -3,7 +3,7 @@ package:
   version: {{ os.environ.get("VERSIONHACK") }}
 
 source:
-  path: .
+  path: ..
 
 build:
   noarch: python
