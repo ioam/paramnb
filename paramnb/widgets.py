@@ -4,15 +4,17 @@ import param
 from param.parameterized import classlist
 
 import ipywidgets
-from ipywidgets import (SelectMultiple, Button, HBox, VBox, Layout,
-                        Text, HTML, FloatSlider, FloatText, IntText,
-                        IntSlider, SelectMultiple, Image, ColorPicker,
-                        FloatRangeSlider, IntRangeSlider, Dropdown)
+from ipywidgets import (
+    SelectMultiple, Button, HBox, VBox, Layout, Text, HTML,
+    FloatSlider, FloatText, IntText, IntSlider, SelectMultiple,
+    Image, ColorPicker, FloatRangeSlider, IntRangeSlider, Dropdown,
+    Output
+)
 import traitlets
 from traitlets import Unicode
 
 from .util import named_objs
-from .view import HTML as HTMLView, Image as ImageView
+from .view import View, HTML as HTMLView, Image as ImageView
 
 
 # What to use for editing parameters of an object,
@@ -300,26 +302,6 @@ class DropdownWithEdit(ipywidgets.Widget):
         return self._composite.get_state(*args,**kw)
 
 
-
-HTMLVIEW_JS = """
-define('activehtml', ["jupyter-js-widgets"], function(widgets) {
-    var ActiveHTMLView = widgets.HTMLView.extend({
-        update: function() {
-            $(this.el).html(this.model.get('value'));
-        }
-    });
-    return {
-        ActiveHTMLView: ActiveHTMLView
-    };
-});
-"""
-
-class ActiveHTMLWidget(HTML):
-    _view_name = Unicode('ActiveHTMLView').tag(sync=True)
-    _view_module = Unicode('activehtml').tag(sync=True)
-    value = Unicode('').tag(sync=True)
-
-
 def apply_error_style(w, error):
     "Applies error styling to the supplied widget based on the error code"
     if error:
@@ -329,8 +311,6 @@ def apply_error_style(w, error):
         w.layout.border = '0px'
 
 
-# Combine all widget JS code into on variable
-WIDGET_JS = ''.join([HTMLVIEW_JS])
 
 # Define parameters which should be evaluated using ast.literal_eval
 literal_params = (param.Dict, param.List, param.Tuple)
@@ -345,8 +325,9 @@ ptype2wtype = {
     param.Integer:       IntegerWidget,
     param.ListSelector:  ListSelectorWidget,
     param.Action:        ActionButton,
-    HTMLView:            ActiveHTMLWidget,
-    ImageView:           Image
+    HTMLView:            Output,
+    ImageView:           Image,
+    View:                Output
 }
 
 # Handle new parameters introduced in param 1.5

@@ -10,22 +10,22 @@ from __future__ import absolute_import
 import sys
 import os
 import ast
+import uuid
 import types
 import itertools
 import json
 import functools
-
-from IPython import get_ipython
-from IPython.display import display, Javascript
-
-import ipywidgets
+from collections import OrderedDict
 
 import param
+import ipywidgets
+from IPython import get_ipython
+from IPython.display import display, Javascript, HTML, clear_output
 
 from . import view
-from .widgets import wtype, WIDGET_JS, apply_error_style, literal_params
+from .widgets import wtype, apply_error_style, literal_params, Output
 from .util import named_objs, get_method_owner
-from .view import _View
+from .view import View, HTML as HTMLView
 
 try:
     __version__ = param.Version(release=(2,0,2), fpath=__file__,
@@ -131,11 +131,12 @@ class Widgets(param.ParameterizedFunction):
         If true, will continuously update the next_n and/or callback,
         if any, as a slider widget is dragged.""")
 
-    def __call__(self, parameterized, **params):
+    def __call__(self, parameterized, plots=[],  **params):
         self.p = param.ParamOverrides(self, params)
         if self.p.initializer:
             self.p.initializer(parameterized)
 
+        self._id = uuid.uuid4().hex
         self._widgets = {}
         self.parameterized = parameterized
 
@@ -145,8 +146,10 @@ class Widgets(param.ParameterizedFunction):
             layout.border = 'solid 1px'
 
         widget_box = ipywidgets.VBox(children=widgets, layout=layout)
-        if views:
-            view_box = ipywidgets.VBox(children=views, layout=layout)
+        plot_outputs = tuple(Output() for p in plots)
+        if views or plots:
+            outputs = tuple(views.values()) + plot_outputs
+            view_box = ipywidgets.VBox(children=outputs, layout=layout)
             layout = self.p.view_position
             if layout in ['below', 'right']:
                 children = [widget_box, view_box]
@@ -155,15 +158,24 @@ class Widgets(param.ParameterizedFunction):
             box = ipywidgets.VBox if layout in ['below', 'above'] else ipywidgets.HBox
             widget_box = box(children=children)
 
-        display(Javascript(WIDGET_JS))
         display(widget_box)
         self._widget_box = widget_box
 
-        for view in views:
-            p_obj = self.parameterized.params(view.name)
-            value = getattr(self.parameterized, view.name)
-            if value is not None:
-                self._update_trait(view.name, p_obj.renderer(value))
+        self._display_handles = {}
+        # Render defined View parameters
+        for pname, view in views.items():
+            p_obj = self.parameterized.params(pname)
+            value = getattr(self.parameterized, pname)
+            if value is None:
+                continue
+            handle = self._update_trait(pname, p_obj.renderer(value))
+            if handle:
+                self._display_handles[pname] = handle
+
+        # Render supplied plots
+        for p, o in zip(plots, plot_outputs):
+            with o:
+                display(p)
 
         # Keeps track of changes between button presses
         self._changed = {}
@@ -177,13 +189,30 @@ class Widgets(param.ParameterizedFunction):
         widget = self._widgets[p_name] if widget is None else widget
         if isinstance(p_value, tuple):
             p_value, size = p_value
-            if isinstance(widget, ipywidgets.Image):
-                widget.width = size[0]
-                widget.height = size[1]
-            elif isinstance(size, tuple) and len(size) == 2:
-                widget.layout.min_width = '%dpx' % size[0]
-                widget.layout.min_height = '%dpx' % size[1]
-        widget.value = p_value
+
+            if isinstance(size, tuple) and len(size) == 2:
+                if isinstance(widget, ipywidgets.Image):
+                    widget.width = size[0]
+                    widget.height = size[1]
+                else:
+                    widget.layout.min_width = '%dpx' % size[0]
+                    widget.layout.min_height = '%dpx' % size[1]
+
+        if isinstance(widget, Output):
+            if isinstance(p_obj, HTMLView) and p_value:
+                p_value = HTML(p_value)
+            with widget:
+                # clear_output required for JLab support
+                # in future handle.update(p_value) should be sufficient
+                handle = self._display_handles.get(p_name)
+                if handle:
+                    clear_output(wait=True)
+                    handle.display(p_value)
+                else:
+                    handle = display(p_value, display_id=p_name+self._id)
+                    self._display_handles[p_name] = handle
+        else:
+            widget.value = p_value
 
 
     def _make_widget(self, p_name):
@@ -335,7 +364,7 @@ class Widgets(param.ParameterizedFunction):
         params = self.parameterized.params().items()
         key_fn = lambda x: x[1].precedence if x[1].precedence is not None else self.p.default_precedence
         sorted_precedence = sorted(params, key=key_fn)
-        outputs = [k for k, p in sorted_precedence if isinstance(p, _View)]
+        outputs = [k for k, p in sorted_precedence if isinstance(p, View)]
         filtered = [(k,p) for (k,p) in sorted_precedence
                     if ((p.precedence is None) or (p.precedence >= self.p.display_threshold))
                     and k not in outputs]
@@ -385,7 +414,7 @@ class Widgets(param.ParameterizedFunction):
             display_button.on_click(click_cb)
             widgets.append(display_button)
 
-        outputs = [self.widget(pname) for pname in outputs]
+        outputs = OrderedDict([(pname, self.widget(pname)) for pname in outputs])
         return widgets, outputs
 
 
