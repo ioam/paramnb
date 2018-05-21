@@ -1,6 +1,6 @@
 import param
 
-class _View(param.Parameter):
+class View(param.Parameter):
     """
     View parameters hold displayable output, they may have a callback,
     which is called when a new value is set on the parameter.
@@ -15,22 +15,22 @@ class _View(param.Parameter):
     def __init__(self, default=None, callback=None, renderer=None, **kwargs):
         self.callbacks = {}
         self.renderer = (lambda x: x) if renderer is None else renderer
-        super(_View, self).__init__(default, **kwargs)
+        super(View, self).__init__(default, **kwargs)
 
     def __set__(self, obj, val):
-        super(_View, self).__set__(obj, val)
+        super(View, self).__set__(obj, val)
         obj_id = id(obj)
         if obj_id in self.callbacks:
             self.callbacks[obj_id](self.renderer(val))
 
 
-class HTML(_View):
+class HTML(View):
     """
     HTML is a View parameter that allows displaying HTML output.
     """
 
 
-class Image(_View):
+class Image(View):
     """
     Image is a View parameter that allows displaying PNG bytestrings.
     """
