@@ -1,3 +1,8 @@
+[![Build Status](https://travis-ci.org/ioam/paramnb.svg?branch=master)](https://travis-ci.org/ioam/paramnb)
+
+[![Build status](https://ci.appveyor.com/api/projects/status/oyx4q6tqj74ld5b9/branch/master?svg=true)](https://ci.appveyor.com/project/Ioam/paramnb/branch/master)
+
+
 # ParamNB
 
 Automatically generate ipywidgets from
