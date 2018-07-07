@@ -7,11 +7,9 @@ from within a Jupyter/IPython notebook.
 """
 from __future__ import absolute_import
 
-import sys
 import os
 import ast
 import uuid
-import types
 import itertools
 import json
 import functools
@@ -19,10 +17,9 @@ from collections import OrderedDict
 
 import param
 import ipywidgets
-from IPython import get_ipython
 from IPython.display import display, Javascript, HTML, clear_output
 
-from . import view
+from . import widgets
 from .widgets import wtype, apply_error_style, literal_params, Output
 from .util import named_objs, get_method_owner
 from .view import View, HTML as HTMLView
@@ -371,7 +368,6 @@ class Widgets(param.ParameterizedFunction):
         ordered_params = [el[0] for group in sorted_groups for el in group]
 
         # Format name specially
-        name = ordered_params.pop(ordered_params.index('name'))
         widgets = [ipywidgets.HTML(self.preamble +
             '<div class="ttip"><b>{0}</b>'.format(self.parameterized.name)+"</div>")]
 

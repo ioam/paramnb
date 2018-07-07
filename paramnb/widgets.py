@@ -6,12 +6,11 @@ from param.parameterized import classlist
 import ipywidgets
 from ipywidgets import (
     SelectMultiple, Button, HBox, VBox, Layout, Text, HTML,
-    FloatSlider, FloatText, IntText, IntSlider, SelectMultiple,
+    FloatSlider, FloatText, IntText, IntSlider,
     Image, ColorPicker, FloatRangeSlider, IntRangeSlider, Dropdown,
     Output
 )
 import traitlets
-from traitlets import Unicode
 
 from .util import named_objs
 from .view import View, HTML as HTMLView, Image as ImageView
@@ -81,7 +80,7 @@ class RangeWidget(param.ParameterizedFunction):
             widget = IntRangeSlider
             kw['step'] = 1
         else:
-            widget = ipywidgets.FloatRangeSlider
+            widget = FloatRangeSlider
             if not 'step' in kw:
                 kw['step'] = float((kw['max'] - kw['min']))/self.steps
         return widget(*args, **kw)
@@ -240,7 +239,6 @@ class CrossSelect(SelectMultiple):
 
         merged = sorted([v for v in list(old) + list(new) if v != ''])
         leftovers = sorted([o for o in other if o not in new and o != ''])
-        new_values = merged if selected else leftovers
         self._lists[selected].options = merged if merged else ['']
         self._lists[not selected].options = leftovers if leftovers else ['']
         self.value = [self._options_dict[o] for o in self._lists[True].options if o != '']
