@@ -27,11 +27,9 @@ from .widgets import wtype, apply_error_style, literal_params, Output
 from .util import named_objs, get_method_owner
 from .view import View, HTML as HTMLView
 
-try:
-    __version__ = param.Version(release=(2,0,2), fpath=__file__,
-                                commit="$Format:%h$", reponame='paramnb')
-except:
-    __version__ = '2.0.2-unknown'
+from param.version import Version
+__version__ = str(param.Version(fpath=__file__,archive_commit="$Format:%h$",reponame="paramnb"))
+del Version
 
 
 def run_next_cells(n):

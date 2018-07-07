@@ -10,41 +10,83 @@ sudo: false
 
 env:
   global:
-    secure: qDzvmjcR6eLAmHx0ziN3Y5M8h65+OM+eBNERQsC3WSkeaD45rEE6a8w59dBdUzZBTLKO2RP8pKlgzxBZGOBlnLbTyN4RD/q2dA+gm5c0SDWWT4kVCiogJVsrzyRHVgMDmqDu56HPbQzhsW+5Qh2JKjVkkI7GwvGZRFB9WKQC8yjW/RfLvQ7bzX6jXbaHDYg9dywjI5u7da7HZKXyt/6nhebdaI19RdQHuESUqTADFEgdCKdzrNC+NqbJ8SUnNBBmkb1ZqoQ3/p1/Z/+uDi/2ThozE7Lz6gl8HtxVRnBiwNCDvZRE8uTB79+FlW0FJCVZ7qGO8jVWlVqy+WEEFh/6s9RP2PLd73CmItfF7BzSdxdurOYfnizboqCideSasDQK7XdeDiX4fPrgqbeesn8+XJ9vhxRAmpsNdZIU+2pivgviJwUZUwKwgzt3hf23ld9GpJg60wCfQRT8hiZc3/XsUPrzDjci7hwrRESqobPcuWk6xsFPTvJsTeOSLejP1wDOGAhufLTQIys26BSwHiaj6aI4RPK3Y4sy644m4IOfVvi3d+YfyN2Q5NO7QIwk5PjQBUEdwcIi3lAk2eAIjJamlDYFCRrnwuEoFinuFlUjtqpkuVTLgonTbk9KkIYnXeP3wYERrt4uOJtxDRCojBC0FI5rDbkhC3wP8Wef4EToQ+s=
+    - PYENV_VERSION=3.6
+    - CHANS_DEV="-c pyviz/label/dev"
+    - CHANS_REL="-c pyviz"
+    # TODO: update before merge (along with stage branch checks)
+    - LABELS_DEV="--label devtmp"
+    - LABELS_REL="--label dev --label main"
+    - PKG_TEST_PYTHON="--test-python=py27 --test-python=py36"
 
 stages:
   - test
-  - name: anaconda_deploy
-    if: branch = master AND type != pull_request
+  - name: conda_dev_package
+    if: tag =~ ^v(\d+|\.)*[a-z]\d*$
+  - name: pip_dev_package
+    if: tag =~ ^v(\d+|\.)*[a-z]\d*$
+  - name: conda_package
+    if: tag =~ ^v(\d+|\.)*[^a-z]\d*$
+  - name: pip_package
+    if: tag =~ ^v(\d+|\.)*[^a-z]\d*$
+
 
 jobs:
   include:
-    - &default
-      stage: test
-      env: PYTHON_VERSION="2.7"
-      install: true
-      script: true
 
-    - <<: *default
-      stage: anaconda_deploy
-      env: PYTHON_VERSION="3.6"
+    ########## DEVELOPER INSTALL ##########
+
+    - &conda_default
+      stage: test
+      env: DESC="dev test_all"
       before_install:
-        #######################
-        ## install miniconda ##
-        - easy_install --user doit==0.29.0 ioamdoit
-        - ~/.local/bin/doit install_miniconda
-        - rm -f .doit.db
-        - export PATH="$HOME/miniconda/bin:$PATH"
-        #######################
-        - pip install ioamdoit
-        - doit create_env --python=$PYTHON_VERSION
-        - source activate test-environment
+        # install doit/pyctdev and use to install miniconda...
+        - pip install pyctdev && doit miniconda_install && pip uninstall -y doit pyctdev
+        - export PATH="$HOME/miniconda/bin:$PATH" && hash -r
+        - conda config --set always_yes True
+        # ...and now install doit/pyctdev into miniconda
+        - conda install -c pyviz/label/dev pyctdev && doit ecosystem_setup
       install:
-        - source deactivate
-        - conda update -q -y conda
-        - conda install -q -y conda-build anaconda-client
-      script:
-        - export VERSIONHACK=$(python -c "import subprocess;desc=subprocess.check_output(['git','describe','--long']).decode('utf8');v,commits=desc.split('-')[0:2];newv=[int(x) for x in v[1::].split('.')];newv[-1]+=1;print('.'.join(str(x) for x in newv)+'.dev'+commits)")
-        - conda build conda.recipe/
-        # TODO: need to upload only if package doesn't exist (as e.g. there are cron builds)
-        - anaconda --token $CONDA_UPLOAD_TOKEN upload --user pyviz --label dev $(conda build --output conda.recipe)
+        - doit env_create $CHANS_DEV --python=$PYENV_VERSION
+        - source activate test-environment
+        - doit develop_install -o examples -o tests $CHANS_DEV
+        - doit env_capture
+      script: doit test_all
+
+    # python 2 flake checking typically catches python 2 syntax
+    # errors where python 3's been assumed...
+    - <<: *conda_default
+      env: DESC="py2 flakes" PYENV_VERSION=2.7
+      script: doit test_lint
+
+    ########## END-USER PACKAGES ##########
+
+    ## dev packages
+
+    - &pip_default
+      env: TRAVIS_NOCACHE=$TRAVIS_JOB_ID PYPI=testpypi PYPIUSER=$TPPU PYPIPASS=$TPPP
+      stage: pip_dev_package
+      before_install: pip install pyctdev && doit ecosystem=pip ecosystem_setup
+      install:
+        - unset PYENV_VERSION && pyenv global 3.6 2.7
+        - doit ecosystem=pip package_build $PKG_TEST_PYTHON --test-group=unit --sdist-install-build-deps
+        - doit ecosystem=pip package_build $PKG_TEST_PYTHON --test-group=all --sdist-install-build-deps
+      script: doit ecosystem=pip package_upload -u $PYPIUSER -p $PYPIPASS --pypi ${PYPI}
+
+    - &conda_pkg
+      <<: *conda_default
+      stage: conda_dev_package
+      env: DESC="" TRAVIS_NOCACHE=$TRAVIS_JOB_ID LABELS=$LABELS_DEV CHANS=$CHANS_DEV
+      install:
+        - doit package_build $CHANS $PKG_TEST_PYTHON --test-group=unit
+        - doit package_test $CHANS $PKG_TEST_PYTHON --test-group=examples --test-requires=examples
+      script: doit package_upload --token=$ANACONDA_TOKEN $LABELS
+
+    ## release packages
+
+    - <<: *pip_default
+      env: TRAVIS_NOCACHE=$TRAVIS_JOB_ID PYPI=pypi PYPIUSER=$PPU PYPIPASS=$PPP
+      stage: pip_package
+
+    - <<: *conda_pkg
+      stage: conda_package
+      env: DESC="" TRAVIS_NOCACHE=$TRAVIS_JOB_ID LABELS=$LABELS_REL CHANS=$CHANS_REL
