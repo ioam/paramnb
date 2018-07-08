@@ -7,11 +7,9 @@ from within a Jupyter/IPython notebook.
 """
 from __future__ import absolute_import
 
-import sys
 import os
 import ast
 import uuid
-import types
 import itertools
 import json
 import functools
@@ -19,19 +17,16 @@ from collections import OrderedDict
 
 import param
 import ipywidgets
-from IPython import get_ipython
 from IPython.display import display, Javascript, HTML, clear_output
 
-from . import view
+from . import widgets
 from .widgets import wtype, apply_error_style, literal_params, Output
 from .util import named_objs, get_method_owner
 from .view import View, HTML as HTMLView
 
-try:
-    __version__ = param.Version(release=(2,0,2), fpath=__file__,
-                                commit="$Format:%h$", reponame='paramnb')
-except:
-    __version__ = '2.0.2-unknown'
+from param.version import Version
+__version__ = str(param.Version(fpath=__file__,archive_commit="$Format:%h$",reponame="paramnb"))
+del Version
 
 
 def run_next_cells(n):
@@ -373,7 +368,6 @@ class Widgets(param.ParameterizedFunction):
         ordered_params = [el[0] for group in sorted_groups for el in group]
 
         # Format name specially
-        name = ordered_params.pop(ordered_params.index('name'))
         widgets = [ipywidgets.HTML(self.preamble +
             '<div class="ttip"><b>{0}</b>'.format(self.parameterized.name)+"</div>")]
 
@@ -491,3 +485,20 @@ class JSONInit(param.Parameterized):
                parameterized.set_param(**{name:value})
            except ValueError as e:
                warnobj.warning(str(e))
+
+
+##
+# make pyct's example/data commands available if possible
+from functools import partial
+try:
+    from pyct.cmd import copy_examples as _copy, fetch_data as _fetch, examples as _examples
+    copy_examples = partial(_copy, 'paramnb')
+    fetch_data = partial(_fetch, 'paramnb')
+    examples = partial(_examples, 'paramnb')
+except ImportError:
+    def _missing_cmd(*args,**kw): return("install pyct to enable this command (e.g. `conda install pyct` or `pip install pyct[cmd]`)")
+    _copy = _fetch = _examples = _missing_cmd
+    def _err(): raise ValueError(_missing_cmd())
+    fetch_data = copy_examples = examples = _err
+del partial, _examples, _copy, _fetch
+##

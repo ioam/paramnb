@@ -1,35 +1,17 @@
-#!/usr/bin/env python
-import os
-import sys
-
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
-
-setup_args = {}
-install_requires = ['param>=1.5.1', 'ipywidgets>=5.2.2']
-
-setup_args.update(dict(
-    name='paramnb',
-    version="2.0.2",
-    install_requires = install_requires,
-    url = 'https://github.com/ioam/paramnb',
-    description='Generate ipywidgets from Parameterized objects in the notebook',
-    long_description=open('README.rst').read() if os.path.isfile('README.rst') else 'Consult README.rst',
-    author= "IOAM",
-    author_email= "holoviews@gmail.com",
-    maintainer= "IOAM",
-    maintainer_email= "holoviews@gmail.com",
-    platforms=['Windows', 'Mac OS X', 'Linux'],
-    packages = ["paramnb"],
-    provides = ["paramnb"],
-))
-
+from setuptools import setup
+import os, sys, shutil
+    
+import pyct.build
 
 if __name__=="__main__":
-    if ('upload' in sys.argv) or ('sdist' in sys.argv):
-        import paramnb
-        paramnb.__version__.verify(setup_args['version'])
+    # TODO: hope to eliminate the examples handling from here
+    # (i.e. all lines except setup()), moving it to pyct
+    example_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                'paramnb','examples')
+    if 'develop' not in sys.argv:
+        pyct.build.examples(example_path, __file__, force=True)
+    
+    setup()
 
-    setup(**setup_args)
+    if os.path.isdir(example_path):
+        shutil.rmtree(example_path)

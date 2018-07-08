@@ -1,3 +1,5 @@
-DOIT_CONFIG = {'verbosity': 2}
+import os
+if "PYCTDEV_ECOSYSTEM" not in os.environ:
+    os.environ["PYCTDEV_ECOSYSTEM"] = "conda"
 
-from ioamdoit import *
+from pyctdev import *  # noqa: api

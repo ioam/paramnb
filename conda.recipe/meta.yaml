@@ -1,6 +1,8 @@
+{% set sdata = load_setup_py_data() %}
+
 package:
   name: paramnb
-  version: {{ os.environ.get("VERSIONHACK") }}
+  version: {{ sdata['version'] }}
 
 source:
   path: ..
@@ -8,20 +10,35 @@ source:
 build:
   noarch: python
   script: python setup.py install --single-version-externally-managed --record=record.txt
+  entry_points:
+    {% for group,epoints in sdata.get("entry_points",{}).items() %}
+    {% for entry_point in epoints %}
+    - {{ entry_point }}
+    {% endfor %}
+    {% endfor %}  
 
 requirements:
-  build:
+  host:
+    # duplicates pyproject.toml (not supported in conda build)
     - python
-    - setuptools
+    - setuptools >=30.3.0
+    - param >=1.7.0
+    - pyct-core >=0.4.4
   run:
-    - param >=1.5.1
-    - ipywidgets >=5.2.2
+    - python {{ sdata['python_requires'] }}
+    {% for dep in sdata.get('install_requires',{}) %}
+    - "{{ dep }}"
+    {% endfor %}
 
 test:
   imports:
     - paramnb
+  requires:
+    {% for dep in sdata['extras_require']['tests'] %}
+    - "{{ dep }}"
+    {% endfor %}
 
 about:
-  home: http://github.com/ioam/paramnb
-  summary: Generate ipywidgets from Parameterized objects in the notebook
-  license: BSD
+  home: {{ sdata['url'] }}
+  summary: {{ sdata['description'] }}
+  license: {{ sdata['license'] }}
