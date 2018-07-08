@@ -27,7 +27,7 @@ requirements:
   run:
     - python {{ sdata['python_requires'] }}
     {% for dep in sdata.get('install_requires',{}) %}
-    - {{ dep }}
+    - "{{ dep }}"
     {% endfor %}
 
 test:
@@ -35,7 +35,7 @@ test:
     - paramnb
   requires:
     {% for dep in sdata['extras_require']['tests'] %}
-    - {{ dep }}
+    - "{{ dep }}"
     {% endfor %}
 
 about:
