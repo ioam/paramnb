@@ -63,7 +63,7 @@ jobs:
     ## dev packages
 
     - &pip_default
-      env: TRAVIS_NOCACHE=$TRAVIS_JOB_ID PYPI=testpypi PYPIUSER=$TPPU PYPIPASS=$TPPP
+      env: PYPI=testpypi PYPIUSER=$TPPU PYPIPASS=$TPPP
       stage: pip_dev_package
       before_install: pip install pyctdev && doit ecosystem=pip ecosystem_setup
       install:
@@ -75,7 +75,7 @@ jobs:
     - &conda_pkg
       <<: *conda_default
       stage: conda_dev_package
-      env: DESC="" TRAVIS_NOCACHE=$TRAVIS_JOB_ID LABELS=$LABELS_DEV CHANS=$CHANS_DEV
+      env: DESC="" LABELS=$LABELS_DEV CHANS=$CHANS_DEV
       install:
         - doit package_build $CHANS $PKG_TEST_PYTHON --test-group=unit
         - doit package_test $CHANS $PKG_TEST_PYTHON --test-group=examples --test-requires=examples
@@ -84,7 +84,7 @@ jobs:
     ## release packages
 
     - <<: *pip_default
-      env: TRAVIS_NOCACHE=$TRAVIS_JOB_ID PYPI=pypi PYPIUSER=$PPU PYPIPASS=$PPP
+      env: PYPI=pypi PYPIUSER=$PPU PYPIPASS=$PPP
       stage: pip_package
 
     - <<: *conda_pkg
