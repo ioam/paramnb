@@ -323,9 +323,9 @@ ptype2wtype = {
     param.Integer:       IntegerWidget,
     param.ListSelector:  ListSelectorWidget,
     param.Action:        ActionButton,
-    HTMLView:            Output,
-    ImageView:           Image,
-    View:                Output
+#    HTMLView:            Output,
+#    ImageView:           Image,
+#    View:                Output
 }
 
 # Handle new parameters introduced in param 1.5

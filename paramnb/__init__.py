@@ -70,7 +70,7 @@ class Widgets(param.ParameterizedFunction):
         (if `button`) else whenever a widget is changed,
         Should accept a Parameterized object argument.""")
 
-    view_position = param.ObjectSelector(default='below',
+    view_position = param.ObjectSelector(default='right',
                                          objects=['below', 'right', 'left', 'above'],
                                          doc="""
         Layout position of any View parameter widgets.""")
@@ -126,10 +126,25 @@ class Widgets(param.ParameterizedFunction):
         If true, will continuously update the next_n and/or callback,
         if any, as a slider widget is dragged.""")
 
+    renderers = param.Parameter(default={}) # eek
+
     def __call__(self, parameterized, plots=[],  **params):
         self.p = param.ParamOverrides(self, params)
         if self.p.initializer:
             self.p.initializer(parameterized)
+
+        assert self.p.callback is None # for now
+        for mthd_name in parameterized.param.viewables():
+            for p in parameterized.param.params_depended_on(mthd_name):
+                def fhack(change):
+                    value = getattr(parameterized,mthd_name)()
+                    # if it's a subobject? if it's a parameter attribute other than value?
+                    if change.what == 'value':
+                        self._update_trait(change.attribute,change.new)
+                    else:
+                        print("didn't teach paramnb what to do about changes on subobjects/parameter attributes other than value")
+                    self._update_trait(mthd_name,self.p.renderers[mthd_name](value))
+                (p.inst if p.inst is not None else p.cls).param.watch(p.name,p.what,fhack)
 
         self._id = uuid.uuid4().hex
         self._widgets = {}
@@ -157,13 +172,13 @@ class Widgets(param.ParameterizedFunction):
         self._widget_box = widget_box
 
         self._display_handles = {}
+
         # Render defined View parameters
         for pname, view in views.items():
-            p_obj = self.parameterized.params(pname)
-            value = getattr(self.parameterized, pname)
+            value = getattr(self.parameterized,pname)()
             if value is None:
                 continue
-            handle = self._update_trait(pname, p_obj.renderer(value))
+            handle = self._update_trait(pname, self.p.renderers[pname](value))
             if handle:
                 self._display_handles[pname] = handle
 
@@ -180,7 +195,6 @@ class Widgets(param.ParameterizedFunction):
 
 
     def _update_trait(self, p_name, p_value, widget=None):
-        p_obj = self.parameterized.params(p_name)
         widget = self._widgets[p_name] if widget is None else widget
         if isinstance(p_value, tuple):
             p_value, size = p_value
@@ -194,8 +208,6 @@ class Widgets(param.ParameterizedFunction):
                     widget.layout.min_height = '%dpx' % size[1]
 
         if isinstance(widget, Output):
-            if isinstance(p_obj, HTMLView) and p_value:
-                p_value = HTML(p_value)
             with widget:
                 # clear_output required for JLab support
                 # in future handle.update(p_value) should be sufficient
@@ -211,10 +223,19 @@ class Widgets(param.ParameterizedFunction):
 
 
     def _make_widget(self, p_name):
-        p_obj = self.parameterized.params(p_name)
-        widget_class = wtype(p_obj)
 
-        value = getattr(self.parameterized, p_name)
+        if p_name in self.parameterized.param.viewables():
+            p_obj = None
+            from ipywidgets import Image
+            # will need type declaration (type returned from method)
+            widget_class = Image # TODO
+            value = self.p.renderers[p_name](getattr(self.parameterized,p_name)())[0]
+            viewable=True
+        else:
+            p_obj = self.parameterized.params(p_name)
+            widget_class = wtype(p_obj)
+            value = getattr(self.parameterized, p_name)
+            viewable = False
 
         # For ObjectSelector, pick first from objects if no default;
         # see https://github.com/ioam/param/issues/164
@@ -225,7 +246,7 @@ class Widgets(param.ParameterizedFunction):
             setattr(self.parameterized, p_name, value)
 
         kw = dict(value=value)
-        if p_obj.doc:
+        if hasattr(p_obj,'doc') and p_obj.doc:
             kw['tooltip'] = p_obj.doc
 
         if isinstance(p_obj, param.Action):
@@ -251,8 +272,8 @@ class Widgets(param.ParameterizedFunction):
 
         w = widget_class(**kw)
 
-        if hasattr(p_obj, 'callbacks') and value is not None:
-            self._update_trait(p_name, p_obj.renderer(value), w)
+        if viewable:
+            self._update_trait(p_name, value, w)
 
         def change_event(event):
             new_values = event['new']
@@ -287,8 +308,8 @@ class Widgets(param.ParameterizedFunction):
             else:
                 self._changed[p_name] = new_values
 
-        if hasattr(p_obj, 'callbacks'):
-            p_obj.callbacks[id(self.parameterized)] = functools.partial(self._update_trait, p_name)
+        if viewable:
+            pass # TODO
         else:
             w.observe(change_event, 'value')
 
@@ -330,6 +351,7 @@ class Widgets(param.ParameterizedFunction):
     def execute(self, changed={}):
         run_next_cells(self.p.next_n)
         if self.p.callback is not None:
+            raise
             if get_method_owner(self.p.callback) is self.parameterized:
                 self.p.callback(**changed)
             else:
@@ -359,7 +381,8 @@ class Widgets(param.ParameterizedFunction):
         params = self.parameterized.params().items()
         key_fn = lambda x: x[1].precedence if x[1].precedence is not None else self.p.default_precedence
         sorted_precedence = sorted(params, key=key_fn)
-        outputs = [k for k, p in sorted_precedence if isinstance(p, View)]
+        outputs = self.parameterized.param.viewables()
+
         filtered = [(k,p) for (k,p) in sorted_precedence
                     if ((p.precedence is None) or (p.precedence >= self.p.display_threshold))
                     and k not in outputs]
