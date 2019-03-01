@@ -5,6 +5,8 @@
 
 # ParamNB
 
+### Note: ParamBokeh is no longer maintained; use the much more capable Panel library instead
+
 Automatically generate ipywidgets from
 [Parameterized](https://github.com/ioam/param) objects in a Jupyter
 notebook.
