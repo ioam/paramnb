@@ -5,7 +5,7 @@
 
 # ParamNB
 
-### Note: ParamBokeh is no longer maintained; use the much more capable [Panel](https://github.com/pyviz/panel) library instead
+### Note: ParamNB is no longer maintained; use the much more capable [Panel](https://github.com/pyviz/panel) library instead
 
 Automatically generate ipywidgets from
 [Parameterized](https://github.com/ioam/param) objects in a Jupyter
